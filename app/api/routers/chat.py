@@ -4,8 +4,8 @@ from fastapi.responses import StreamingResponse
 from typing import List
 
 from app.core.database import get_db
-from app.services.chat_service import ChatService, update_conversation_title
-from app.schemas.chat import Conversation, ConversationCreate, ConversationDetail, ChatRequest
+from app.services.chat_service import ChatService, update_conversation_title, AGENTS
+from app.schemas.chat import Conversation, ConversationCreate, ConversationDetail, ChatRequest, AgentInfo
 
 router = APIRouter()
 
@@ -24,6 +24,18 @@ async def list_conversations(
 ):
     service = ChatService(db)
     return await service.get_conversations(limit=limit)
+
+@router.get("/agents", response_model=List[AgentInfo])
+async def list_agents():
+    agents_list = []
+    for agent_id, agent in AGENTS.items():
+        agents_list.append(AgentInfo(
+            id=agent_id,
+            name=agent.name,
+            description=agent.description,
+            tools=list(agent.tools.keys())
+        ))
+    return agents_list
 
 @router.get("/conversations/{conversation_id}", response_model=ConversationDetail)
 async def get_conversation(
