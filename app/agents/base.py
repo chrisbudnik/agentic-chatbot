@@ -104,7 +104,7 @@ class BaseAgent(ABC):
             #  - list of events
             #  - single event
             #  - simple value (before-callback case)
-            result = callback_fn(callback_input)
+            result = callback_fn(**callback_input)
 
             # Case 1 — streaming callback
             if inspect.isasyncgen(result):
@@ -167,7 +167,7 @@ class BaseAgent(ABC):
 
         async for event in self._run_callback_with_events(
             callback_fn=self.before_agent_callback,
-            callback_input=(user_input, history),
+            callback_input={"user_input": user_input, "history": history},
             collector=collector,
             collector_attr="before_modified_input",
             callback_type="before_agent_callback"
@@ -193,7 +193,7 @@ class BaseAgent(ABC):
 
         async for event in self._run_callback_with_events(
             callback_fn=self.after_agent_callback,
-            callback_input=final_answer,
+            callback_input={"final_answer": final_answer},
             collector=collector,
             collector_attr="after_events",
             callback_type="after_agent_callback"
@@ -233,7 +233,7 @@ class BaseAgent(ABC):
     # ============================================================
 
     @abstractmethod
-    async def _process_turn(self, history: List[dict], user_input: str) -> AsyncIterator[AgentEvent]:
+    async def _process_turn(self, history: List[dict], user_input: str, *args, **kwargs) -> AsyncIterator[AgentEvent]:
         """
         Abstract method to process a turn. Implemented by subclasses.
         """
