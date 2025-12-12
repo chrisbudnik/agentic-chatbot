@@ -6,7 +6,8 @@ import json
 
 from app.models.chat import Conversation, Message, TraceLog, MessageRole, TraceType
 from app.schemas.chat import ConversationCreate, ChatRequest
-from app.agents.base import DummyAgent, DummySearchTool, AgentEvent
+from app.agents.base import AgentEvent
+from app.agents.dummy_agent import DummyAgent, DummySearchTool, DummyAgentWithError
 from app.agents.llm_agent import LLMAgent
 from app.core.config import settings
 from app.core.database import SessionLocal
@@ -15,7 +16,8 @@ from openai import AsyncOpenAI
 # Simple Registry
 AGENTS = {
     "dummy": DummyAgent(tools=[DummySearchTool()]),
-    "default": LLMAgent(tools=[DummySearchTool()])
+    "default": LLMAgent(tools=[DummySearchTool()]),
+    "dummy_error": DummyAgentWithError(tools=[DummySearchTool()])
 }
 
 class ChatService:
