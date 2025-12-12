@@ -66,12 +66,48 @@ async function init() {
 
     // Load Data
     try {
-        await loadConversations();
+        await Promise.all([loadConversations(), fetchAgents()]);
     } catch (err) {
-        console.error("Failed to load conversations:", err);
+        console.error("Failed to load initial data:", err);
     }
+}
 
-    // Load first conv if exists? Or just wait.
+async function fetchAgents() {
+    try {
+        const res = await fetch(`${API_BASE}/agents`);
+        if (!res.ok) throw new Error("Failed to fetch agents");
+        const agents = await res.json();
+
+        const menu = document.getElementById("dropdown-menu");
+        menu.innerHTML = "";
+
+        let foundCurrent = false;
+
+        agents.forEach(agent => {
+            const div = document.createElement("div");
+            div.className = "dropdown-item";
+            div.dataset.value = agent.id;
+            div.textContent = agent.name;
+            div.title = agent.description; // Tooltip
+
+            if (agent.id === currentAgentId) {
+                div.classList.add("selected");
+                selectedAgentText.textContent = agent.name;
+                foundCurrent = true;
+            }
+            menu.appendChild(div);
+        });
+
+        // If current default is not found, select the first one
+        if (!foundCurrent && agents.length > 0) {
+            currentAgentId = agents[0].id;
+            selectedAgentText.textContent = agents[0].name;
+            menu.firstElementChild.classList.add("selected");
+        }
+
+    } catch (e) {
+        console.error("Error fetching agents:", e);
+    }
 }
 
 async function loadConversations() {
@@ -322,6 +358,9 @@ function createTraceElement(traceObj) {
         detailContent = traceObj.content;
     } else if (traceObj.type === "execute_callback_result") {
         label = `✅ Callback Result`;
+        detailContent = traceObj.content;
+    } else if (traceObj.type === "error") {
+        label = `❌ Error`;
         detailContent = traceObj.content;
     } else {
         label = traceObj.content;

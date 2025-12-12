@@ -424,6 +424,10 @@ button.send-btn:hover {
     color: #7ee787;
 }
 
+.trace-item.error .trace-header {
+    color: #ff6a6a;
+}
+
 .trace-header {
     cursor: pointer;
     display: flex;
