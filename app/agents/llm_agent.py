@@ -29,7 +29,14 @@ class LLMAgent(BaseAgent):
         if after_agent_callback is None:
             after_agent_callback = simple_after_callback
             
-        super().__init__(tools, before_agent_callback, after_agent_callback)
+        super().__init__(
+            tools=tools,
+            name="LLM Agent",
+            description="A smart agent that uses an LLM to reason and use tools.",
+            model=model,
+            before_agent_callback=before_agent_callback,
+            after_agent_callback=after_agent_callback
+        )
         self.model = model
         # Initialize OpenAI client
         # Note: In a real app, you might want to instantiate this once or differently

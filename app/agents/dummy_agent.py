@@ -6,7 +6,6 @@ from pydantic import BaseModel
 import asyncio
 
 
-
 class DummySearchTool(BaseTool):
     name = "search_tool"
     description = "Searches the database for information."
@@ -33,6 +32,11 @@ class DummyAgent(BaseAgent):
 
         yield AgentEvent(type="answer", content=f"Search results for '{user_input}': {result}")
 
+
 class DummyAgentWithError(BaseAgent):
     async def _process_turn(self, history: List[dict], user_input: str) -> AsyncIterator[AgentEvent]:
-        yield AgentEvent(type="error", content="Something went wrong")
+        try:
+            raise ValueError("This is ValueError message")
+            
+        except ValueError as e:
+            yield AgentEvent(type="error", content=f"{type(e).__name__}: {e}")

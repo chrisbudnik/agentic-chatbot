@@ -148,7 +148,7 @@ class BaseAgent(ABC):
         except Exception as e:
             yield AgentEvent(
                 type="error",
-                content=f"Callback {callback_type} failed: {e}",
+                content=f"{type(e).__name__}: {e}",
                 callback_type=callback_type
             )
 
