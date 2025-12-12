@@ -1,4 +1,5 @@
-# Intelligent Agent Chatbot
+# Agentic Chatbot
+![UI](images/ui-chat.png)
 
 A production-ready, full-stack chatbot application featuring a **custom-built agentic AI framework**. This project demonstrates advanced patterns in AI engineering, including an event-driven "ReAct" (Reasoning + Acting) loop, real-time streaming of agent thoughts, and a modular architecture designed for extensibility.
 
