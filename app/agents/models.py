@@ -1,0 +1,28 @@
+from pydantic import BaseModel, Field
+from typing import List, Optional
+
+
+
+# ============================================================
+# EVENT MODEL
+# ============================================================
+
+class AgentEvent(BaseModel):
+    type: str
+    content: str
+    tool_name: str = None
+    tool_args: dict = None
+    tool_call_id: str = None
+    callback_type: str = None
+
+
+# ============================================================
+# COLLECTOR
+# ============================================================
+class CallbackContext:
+    """Stores final result of each callback."""
+
+    def __init__(self):
+        self.modified_input: Optional[str] = None
+        self.after_events: List[AgentEvent] = []
+
