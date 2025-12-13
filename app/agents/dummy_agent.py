@@ -1,7 +1,7 @@
 from typing import AsyncIterator, List
 
 from app.agents.base import BaseAgent, AgentEvent
-from app.tools.base import BaseTool
+from app.agents.tools.base import BaseTool
 from pydantic import BaseModel
 import asyncio
 

@@ -2,9 +2,9 @@ from typing import List, AsyncIterator, Dict, Any
 import json
 from openai import AsyncOpenAI
 from app.agents.base import BaseAgent, AgentEvent
-from app.tools.base import BaseTool
+from app.agents.tools.base import BaseTool
 from app.core.config import settings
-
+from app.agents.models import CallbackContext
 
 async def simple_before_callback(user_input: str, history: List[dict]):
     """
@@ -43,7 +43,13 @@ class LLMAgent(BaseAgent):
         )
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
-    async def _process_turn(self, history: List[dict], user_input: str) -> AsyncIterator[AgentEvent]:
+    async def _process_turn(
+            self, 
+            history: List[dict], 
+            user_input: str, 
+            callback_context: CallbackContext
+        ) -> AsyncIterator[AgentEvent]:
+        
         # 1. Prepare Messages
         # Start with system prompt
         yield AgentEvent(type="thought", content=str(history))
