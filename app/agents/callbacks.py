@@ -4,10 +4,10 @@ from app.agents.models import AgentEvent, CallbackContext
 
 
 type CallbackFunctionOutput = AsyncIterator[AgentEvent] | List[AgentEvent] | AgentEvent | str | None
-type BeforeAgentCallback = Callable[[str, List[dict]], CallbackFunctionOutput] #user_input: str, history: List[dict]
-type AfterAgentCallback = Callable[[AgentEvent], CallbackFunctionOutput] #final_answer: AgentEvent
-type BeforeToolCallback = Callable[[dict, CallbackContext], CallbackFunctionOutput] #tool_args: dict
-type AfterToolCallback = Callable[[str, CallbackContext], CallbackFunctionOutput] #tool_result: str
+type BeforeAgentCallback = Callable[[str, List[dict], CallbackContext], CallbackFunctionOutput] # user_input: str, history: List[dict]
+type AfterAgentCallback = Callable[[AgentEvent, CallbackContext], CallbackFunctionOutput] # final_answer: AgentEvent
+type BeforeToolCallback = Callable[[dict, CallbackContext], CallbackFunctionOutput] # tool_args: dict
+type AfterToolCallback = Callable[[str, CallbackContext], CallbackFunctionOutput] # tool_result: str
 
 
 async def run_callback_with_events(
@@ -47,7 +47,7 @@ async def run_callback_with_events(
     )
 
     try:
-        result = callback_fn(**callback_input)
+        result = callback_fn(**callback_input, context=context)
 
         # Case 1 — streaming callback (async gen)
         if inspect.isasyncgen(result):
