@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, AsyncIterator, Optional
 from pydantic import BaseModel
 import asyncio
+from typing import Optional, List, Callable
 import inspect
 import json
 
@@ -39,16 +40,16 @@ class CallbackCollector:
 class BaseAgent(ABC):
     def __init__(
         self,
-        tools: List[BaseTool] = [],
         name: str = "Agent",
         description: str = "",
         system_prompt: str = "You are a helpful assistant.",
         model: str = "gpt-4.1",
-        before_agent_callback=None,
-        after_agent_callback=None
+        tools: Optional[List[BaseTool]] = None,
+        before_agent_callback: Optional[Callable] = None,
+        after_agent_callback: Optional[Callable] = None
     ) -> None:
 
-        self.tools = {t.name: t for t in tools}
+        self.tools = {t.name: t for t in tools} if tools else {}
         self.name = name
         self.description = description
         self.system_prompt = system_prompt
@@ -220,6 +221,7 @@ class BaseAgent(ABC):
         async for event in self._process_turn(history, collector.before_modified_input):
             if event.type == "answer":
                 final_answer_event = event
+                break
             yield event
 
         # AFTER CALLBACK
@@ -238,4 +240,73 @@ class BaseAgent(ABC):
         Abstract method to process a turn. Implemented by subclasses.
         """
         pass
+
+    # ============================================================
+    # TOOL HELPERS
+    # ============================================================
+    def get_llm_tools(self) -> list | None:
+        """
+        Return tool schemas in LLM-compatible format.
+        """
+        if not self.tools:
+            return None
+
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.schema,
+                },
+            }
+            for tool in self.tools.values()
+        ]
+        
+    def parse_tool_args(self, raw_args: str | dict | None) -> dict:
+        """
+        Parse tool arguments safely.
+        """
+        if raw_args is None:
+            return {}
+
+        if isinstance(raw_args, dict):
+            return raw_args
+
+        try:
+            return json.loads(raw_args)
+        except json.JSONDecodeError:
+            return {}
+
+    async def execute_tool(self, name: str, args: dict) -> str:
+        """
+        Execute a tool and return stringified result.
+        """
+        if name not in self.tools:
+            return f"Error: Tool '{name}' not found."
+
+        try:
+            result = await self.tools[name].run(**args)
+            return str(result)
+        except Exception as e:
+            return f"Error executing tool '{name}': {type(e).__name__}: {e}"
+
+    def build_tool_result_message(
+        self,
+        tool_call_id: str,
+        tool_name: str,
+        result: str,
+    ) -> dict:
+        """
+        Build a message that feeds tool output back to the LLM.
+        """
+        return {
+            "role": "tool",
+            "tool_call_id": tool_call_id,
+            "name": tool_name,
+            "content": result,
+        }
+
+
+
 
