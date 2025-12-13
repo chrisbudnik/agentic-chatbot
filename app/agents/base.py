@@ -9,6 +9,7 @@ import json
 from app.agents.tools.base import BaseTool
 from app.agents.models import AgentEvent, CallbackContext
 from app.agents.callbacks import run_callback_with_events
+from app.agents.callbacks import BeforeAgentCallback, AfterAgentCallback
 
 
 # ============================================================
@@ -23,8 +24,8 @@ class BaseAgent(ABC):
         system_prompt: str = "You are a helpful assistant.",
         model: str = "gpt-4.1",
         tools: Optional[List[BaseTool]] = None,
-        before_agent_callback: Optional[Callable] = None,
-        after_agent_callback: Optional[Callable] = None
+        before_agent_callback: Optional[BeforeAgentCallback] = None,
+        after_agent_callback: Optional[AfterAgentCallback] = None
     ) -> None:
 
         self.tools = {t.name: t for t in tools} if tools else {}
