@@ -92,8 +92,10 @@ class BaseTool(ABC):
         
         context.tool_input = None
         context.tool_result = None
-
+        
+        # -------------------------------------------------------------------
         # 1. Start tool execution, preprocess args for api
+        # -------------------------------------------------------------------
         fn_name = tool_call.function.name
         fn_args = self.parse_tool_args(tool_call.function.arguments)
 
@@ -104,8 +106,9 @@ class BaseTool(ABC):
             tool_args=fn_args,
             tool_call_id=tool_call.id
         )
-
+        # -------------------------------------------------------------------
         # 2. Before Callback
+        # -------------------------------------------------------------------
         if self.before_tool_callback:
             async for event in run_callback_with_events(
                 callback_fn=self.before_tool_callback,
@@ -118,7 +121,9 @@ class BaseTool(ABC):
         
         effective_args = context.tool_input if context.tool_input is not None else fn_args
 
+        # -------------------------------------------------------------------
         # 3. Run Tool - use tool's run method
+        # -------------------------------------------------------------------
         try:
             if not isinstance(effective_args, dict):
                 error_msg = (
@@ -138,8 +143,10 @@ class BaseTool(ABC):
                 type="error",
                 content=error_msg
             )
-            
+
+        # -------------------------------------------------------------------
         # 4. After Callback
+        # -------------------------------------------------------------------
         if self.after_tool_callback and context.tool_result:
             async for event in run_callback_with_events(
                 callback_fn=self.after_tool_callback,
@@ -149,9 +156,11 @@ class BaseTool(ABC):
                 callback_type="after_tool_callback"
             ):
                 yield event
-        
+
+        # -------------------------------------------------------------------
         # 5. Yield final tool result event
         # Ensure result is not None (OpenAI requirement)
+        # -------------------------------------------------------------------
         if context.tool_result is None:
             context.tool_result = "Error: No result returned from tool execution."
 
