@@ -7,24 +7,6 @@ from app.agents.tools.base import BaseTool
 from app.core.config import settings
 from app.agents.models import CallbackContext
 
-async def simple_before_callback(user_input: str, history: List[dict]):
-    """
-    Example before callback that appends a string to the user input.
-    """
-    print(f"DEBUG: Executing simple_before_callback with input: {user_input}")
-    return user_input + " [Modified by Before Callback]"
-
-async def simple_after_callback(final_answer: AgentEvent) -> List[AgentEvent]:
-    """
-    Example after callback that adds a thought event before the final answer.
-    """
-    print("DEBUG: Executing simple_after_callback")
-    extra_event = AgentEvent(
-        type="thought", 
-        content="This thought was added by the after_agent_callback.",
-    )
-    return [extra_event, final_answer]
-
 
 class LLMAgent(BaseAgent):
     def __init__(
