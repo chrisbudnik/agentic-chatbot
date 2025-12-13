@@ -1,12 +1,18 @@
-from typing import AsyncIterator, List, Optional
+from typing import AsyncIterator, List, Optional, Callable, Any
 import inspect
 from app.agents.models import AgentEvent, CallbackContext
 
 
+type CallbackFunctionOutput = AsyncIterator[AgentEvent] | List[AgentEvent] | AgentEvent | str | None
+type BeforeAgentCallback = Callable[[str, List[dict]], CallbackFunctionOutput] #user_input: str, history: List[dict]
+type AfterAgentCallback = Callable[[AgentEvent], CallbackFunctionOutput] #final_answer: AgentEvent
+type BeforeToolCallback = Callable[[dict, CallbackContext], CallbackFunctionOutput] #tool_args: dict
+type AfterToolCallback = Callable[[str, CallbackContext], CallbackFunctionOutput] #tool_result: str
+
 
 async def run_callback_with_events(
-    callback_fn,
-    callback_input,
+    callback_fn: Callable[..., CallbackFunctionOutput],
+    callback_input: dict[str, Any],
     context: CallbackContext,
     context_attr: str,
     callback_type: str
