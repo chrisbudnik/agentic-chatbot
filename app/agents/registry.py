@@ -6,7 +6,7 @@ from app.agents.llm_agent import LLMAgent
 AGENTS = {
     "default": LLMAgent(tools=[DummySearchTool()]),
     "dummy": DummyAgent(
-        name="Dummy Agent", 
+        name="Dummy Agent",
         description="A simple agent that simulates search.", 
         tools=[DummySearchTool()]
     ),
