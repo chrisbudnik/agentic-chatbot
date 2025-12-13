@@ -1,3 +1,4 @@
+from pyexpat.errors import messages
 from typing import List, AsyncIterator, Dict, Any
 import json
 from openai import AsyncOpenAI
@@ -49,7 +50,7 @@ class LLMAgent(BaseAgent):
             user_input: str, 
             callback_context: CallbackContext
         ) -> AsyncIterator[AgentEvent]:
-        
+
         # 1. Prepare Messages
         # Start with system prompt
         yield AgentEvent(type="thought", content=str(history))
@@ -60,7 +61,7 @@ class LLMAgent(BaseAgent):
         messages.append({"role": "user", "content": user_input})
         
         # 2. Prepare Tools
-        openai_tools = self.get_llm_tools()
+        openai_tools = [t.to_openai_tool() for t in self.tools.values()] if self.tools else None
 
         # 3. ReAct / Tool-Use Loop
         # we loop until the model decides to stop calling tools (i.e. yields an answer)
@@ -82,8 +83,6 @@ class LLMAgent(BaseAgent):
             tool_calls = message.tool_calls
             
             # Append the assistant's response to messages (context for next turn)
-            # We must convert the object to a dict to append to our local messages list
-            # or just rely on the object if the library supports it, but simple dict is safer for custom loops
             msg_dict = {"role": "assistant"}
             if content:
                 msg_dict["content"] = content
@@ -94,32 +93,30 @@ class LLMAgent(BaseAgent):
 
             if tool_calls:
                 # If there are tool calls, we consider any content as a "thought"
+                # but this occurs very infrequently since llm models are tuned to provide only params.
                 if content:
                     yield AgentEvent(type="thought", content=content)
                 
                 for tool_call in tool_calls:
-                    fn_name = tool_call.function.name
-                    fn_args = self.parse_tool_args(tool_call.function.arguments)
+
+                    # new context for each tool - avoid race conditions
+                    tool_context: CallbackContext = CallbackContext()
+                    tool = self.tools.get(tool_call.function.name)
                     
-                    yield AgentEvent(
-                        type="tool_call", 
-                        content=f"Calling {fn_name} with {json.dumps(fn_args)}", 
-                        tool_name=fn_name, 
-                        tool_args=fn_args,
-                        tool_call_id=tool_call.id
-                    )
-                    
-                    result_str = await self.execute_tool(fn_name, fn_args)
-                    
-                    yield AgentEvent(
-                        type="tool_result", 
-                        content=result_str, 
-                        tool_name=fn_name, 
-                        tool_call_id=tool_call.id
-                    )
+                    if tool:
+                        async for event in tool.execute(tool_call, tool_context):
+                            yield event
+                        tool_result = tool_context.tool_result
+                    else:
+                        # this error practically never happens for newer models
+                        tool_result = f"Error: Tool '{tool_call.function.name}' not found." 
 
                     messages.append(
-                        self.build_tool_result_message(tool_call.id, fn_name, result_str)
+                        BaseTool.build_tool_result_message(
+                            tool_call.id,
+                            tool_call.function.name,
+                            tool_result or "Error: Tool failed without returning a result."
+                        )
                     )
                 
             else:
