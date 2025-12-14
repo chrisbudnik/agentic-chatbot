@@ -17,3 +17,27 @@ dependencies = [
     "sqlalchemy>=2.0.45",
     "uvicorn[standard]>=0.38.0",
 ]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.0",
+    "pytest>=9.0.2",
+    "ruff>=0.14.9",
+]
+
+[tool.ruff]
+line-length = 70
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "tab"
+docstring-code-format = true
