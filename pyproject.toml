@@ -35,7 +35,7 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 70
+line-length = 80
 
 [tool.ruff.format]
 quote-style = "double"
