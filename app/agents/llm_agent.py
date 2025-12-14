@@ -32,30 +32,47 @@ class LLMAgent(BaseAgent):
 		user_input: str,
 		callback_context: CallbackContext,
 	) -> AsyncIterator[AgentEvent]:
+		"""
+		Process a single turn of the agent's operation using OpenAI's LLM with tool use.
+
+		Args:
+			history (List[dict]): The conversation history in OpenAI message format.
+			user_input (str): The latest user input to process.
+			callback_context (CallbackContext): Context for callbacks during tool execution.
+
+		Yields:
+			AsyncIterator[AgentEvent]: An asynchronous iterator of AgentEvents representing
+		"""
+
+		# -------------------------------------------------------------------
 		# 1. Prepare Messages
-		# Start with system prompt
-		yield AgentEvent(type="thought", content=str(history))
+		# -------------------------------------------------------------------
 		messages = [
 			{
 				"role": "system",
 				"content": "You are a helpful assistant. Use tools when necessary.",
 			}
 		]
-
 		messages.extend(history)
-
 		messages.append({"role": "user", "content": user_input})
 
+		# -------------------------------------------------------------------
 		# 2. Prepare Tools
+		# -------------------------------------------------------------------
 		openai_tools = (
 			[t.to_openai_tool() for t in self.tools.values()]
 			if self.tools
 			else None
 		)
 
+		# -------------------------------------------------------------------
 		# 3. ReAct / Tool-Use Loop
-		# we loop until the model decides to stop calling tools (i.e. yields an answer)
+		# - handle LLM response,
+		# - execute tools,
+		# - feed tool results back to LLM history
+		# -------------------------------------------------------------------
 		while True:
+
 			try:
 				response = await self.client.chat.completions.create(
 					model=self.model,
@@ -72,7 +89,6 @@ class LLMAgent(BaseAgent):
 			content = message.content
 			tool_calls = message.tool_calls
 
-			# Append the assistant's response to messages (context for next turn)
 			msg_dict = {"role": "assistant"}
 			if content:
 				msg_dict["content"] = content
@@ -81,38 +97,33 @@ class LLMAgent(BaseAgent):
 
 			messages.append(msg_dict)
 
-			if tool_calls:
-				# If there are tool calls, we consider any content as a "thought"
-				# but this occurs very infrequently since llm models are tuned to provide only params.
-				if content:
-					yield AgentEvent(type="thought", content=content)
-
-				for tool_call in tool_calls:
-					# new context for each tool - avoid race conditions
-					tool_context: CallbackContext = CallbackContext()
-					tool = self.tools.get(tool_call.function.name)
-
-					if tool:
-						async for event in tool.execute(
-							tool_call, tool_context
-						):
-							yield event
-						tool_result = tool_context.tool_result
-					else:
-						# this error practically never happens for newer models
-						tool_result = f"Error: Tool '{tool_call.function.name}' not found."
-
-					messages.append(
-						BaseTool.build_tool_result_message(
-							tool_call.id,
-							tool_call.function.name,
-							tool_result
-							or "Error: Tool failed without returning a result.",
-						)
-					)
-
-			else:
-				if content:
-					yield AgentEvent(type="answer", content=content)
-
+			if not tool_calls:
+				yield AgentEvent(type="answer", content=content)
 				break
+			
+			if content:
+				yield AgentEvent(type="thought", content=content)
+
+			for tool_call in tool_calls:
+				# new context for each tool - avoid race conditions
+				tool_context: CallbackContext = CallbackContext()
+				tool = self.tools.get(tool_call.function.name)
+
+				if tool:
+					async for event in tool.execute(
+						tool_call, tool_context
+					):
+						yield event
+					tool_result = tool_context.tool_result
+				else:
+					# this error practically never happens for newer models
+					tool_result = f"Error: Tool '{tool_call.function.name}' not found."
+
+				messages.append(
+					BaseTool.build_tool_result_message(
+						tool_call.id,
+						tool_call.function.name,
+						tool_result
+						or "Error: Tool failed without returning a result.",
+					)
+				)
