@@ -14,6 +14,7 @@ const dropdownTrigger = document.getElementById("dropdown-trigger");
 const dropdownMenu = document.getElementById("dropdown-menu");
 const selectedAgentText = document.getElementById("selected-agent-text");
 const currentChatTitle = document.getElementById("current-chat-title");
+const inputArea = document.getElementById("input-area");
 let currentAgentId = "default";
 
 // Init
@@ -56,6 +57,8 @@ async function init() {
 
     // Listeners
     newChatBtn.addEventListener("click", createConversation);
+    // document.addEventListener("click", (e) => { ... }); Removed center button listener
+
     sendBtn.addEventListener("click", sendMessage);
     messageInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -183,10 +186,46 @@ async function deleteConversation(id) {
             if (currentConversationId === id) {
                 currentConversationId = null;
                 chatContainer.innerHTML = `
-                    <div style="text-align:center; color: #8b949e; margin-top: 2rem;">
-                        <h2>Welcome to Agent Chat</h2>
-                        <p>Select a conversation or start a new one.</p>
-                    </div>`;
+            <div id="welcome-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #8b949e;">
+                <h1 style="font-size: 2.5rem; margin-bottom: 2rem; color: var(--text-primary);">Agent Chat</h1>
+                <div style="text-align: left; max-width: 500px; line-height: 1.6;">
+                    <p style="margin-bottom: 2rem; font-size: 1.1rem; text-align: center;">Explore the capabilities of autonomous AI agents.</p>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start;">
+                            <span style="margin-right: 1rem; font-size: 1.2rem;">🤖</span>
+                            <div>
+                                <strong style="color: var(--text-primary); display: block; margin-bottom: 0.2rem;">Multi-Model Agents</strong>
+                                <span style="font-size: 0.95rem;">Switch between different specialized agents for various tasks.</span>
+                            </div>
+                        </li>
+                         <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start;">
+                            <span style="margin-right: 1rem; font-size: 1.2rem;">🛠️</span>
+                            <div>
+                                <strong style="color: var(--text-primary); display: block; margin-bottom: 0.2rem;">Tool Integration</strong>
+                                <span style="font-size: 0.95rem;">Agents can use tools to fetch data and perform actions.</span>
+                            </div>
+                        </li>
+                        <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start;">
+                            <span style="margin-right: 1rem; font-size: 1.2rem;">🔄</span>
+                            <div>
+                                <strong style="color: var(--text-primary); display: block; margin-bottom: 0.2rem;">Event Callbacks</strong>
+                                <span style="font-size: 0.95rem;">Hook into the agent lifecycle to monitor execution and trigger side-effects.</span>
+                            </div>
+                        </li>
+                        <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start;">
+                            <span style="margin-right: 1rem; font-size: 1.2rem;">🧠</span>
+                            <div>
+                                <strong style="color: var(--text-primary); display: block; margin-bottom: 0.2rem;">Transparent Workflows</strong>
+                                <span style="font-size: 0.95rem;">View the agent's internal thoughts and execution steps in real-time.</span>
+                            </div>
+                        </li>
+                    </ul>
+                    <div style="margin-top: 3rem; padding: 1rem; border: 1px dashed var(--border-color); border-radius: 8px; text-align: center; background: rgba(13, 17, 23, 0.5);">
+                        <span style="font-size: 0.9rem;">To get started, click <strong>+ New Chat</strong> in the sidebar.</span>
+                    </div>
+                </div>
+            </div>`;
+                inputArea.style.display = "none";
                 document.getElementById("current-chat-title").textContent = "New Chat";
                 document.getElementById("current-chat-id").style.display = "none";
             }
@@ -212,6 +251,7 @@ async function createConversation() {
     const idDisplay = document.getElementById("current-chat-id");
     idDisplay.textContent = conv.id;
     idDisplay.style.display = "block";
+    inputArea.style.display = "block";
 }
 
 async function loadConversation(id) {
@@ -226,6 +266,7 @@ async function loadConversation(id) {
     const idDisplay = document.getElementById("current-chat-id");
     idDisplay.textContent = data.id || id;
     idDisplay.style.display = "block";
+    inputArea.style.display = "block";
     data.messages.forEach(renderFullMessage);
     scrollToBottom();
 }
