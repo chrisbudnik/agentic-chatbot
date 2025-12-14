@@ -13,3 +13,8 @@ wheels/
 .env
 chatbot.db
 .DS_Store
+
+# static code analysis and formatting
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
