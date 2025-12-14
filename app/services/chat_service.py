@@ -1,25 +1,25 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator
 import json
 
 from app.models.chat import (
 	Conversation,
 	Message,
-	TraceLog,
-	MessageRole,
 )
 from app.schemas.chat import ChatRequest
 from app.agents.registry import AGENTS
 from app.core.config import settings
 from app.core.database import SessionLocal
 from openai import AsyncOpenAI
+from app.services.memory_service import MemoryService
 
 
 class ChatService:
 	def __init__(self, db: AsyncSession):
 		self.db = db
+		self.memory = MemoryService(db)
 
 	async def create_conversation(
 		self, title: str = "New Chat"
@@ -59,88 +59,6 @@ class ChatService:
 			return True
 		return False
 
-	async def _get_history(self, conversation_id: str) -> List[dict]:
-		stmt = (
-			select(Message)
-			.options(selectinload(Message.traces))
-			.where(Message.conversation_id == conversation_id)
-			.order_by(Message.created_at)
-		)
-		result = await self.db.execute(stmt)
-		messages = result.scalars().all()
-
-		history = []
-		for msg in messages:
-			if msg.role == MessageRole.USER:
-				history.append({"role": "user", "content": msg.content})
-			elif msg.role == MessageRole.ASSISTANT:
-				# Reconstruct trace steps
-				traces = sorted(msg.traces, key=lambda t: t.timestamp)
-
-				tool_calls_data = []
-				for t in traces:
-					if t.type == "tool_call":
-						tool_calls_data.append(
-							{
-								"id": t.tool_call_id,
-								"type": "function",
-								"function": {
-									"name": t.tool_name,
-									"arguments": json.dumps(t.tool_args)
-									if isinstance(t.tool_args, dict)
-									else t.tool_args,
-								},
-							}
-						)
-
-				if tool_calls_data:
-					# Assistant Trace Message
-					content = None
-					for t in traces:
-						if t.type == "thought":
-							content = t.content
-							break
-
-					asst_step = {
-						"role": "assistant",
-						"tool_calls": tool_calls_data,
-					}
-					if content:
-						asst_step["content"] = content
-					history.append(asst_step)
-
-					# Tool Results
-					for t in traces:
-						if t.type == "tool_result":
-							history.append(
-								{
-									"role": "tool",
-									"tool_call_id": t.tool_call_id,
-									"name": t.tool_name,
-									"content": t.content,
-								}
-							)
-
-					# Final Answer
-					if msg.content:
-						history.append(
-							{
-								"role": "assistant",
-								"content": msg.content,
-							}
-						)
-				else:
-					# Simple answer
-					if msg.content:
-						history.append(
-							{
-								"role": "assistant",
-								"content": msg.content,
-							}
-						)
-
-		return history
-
 	async def process_message(
 		self, conversation_id: str, request: ChatRequest
 	) -> AsyncGenerator[str, None]:
@@ -153,36 +71,22 @@ class ChatService:
 		"""
 
 		# 1. Save User Message
-		user_msg = Message(
-			conversation_id=conversation_id,
-			role=MessageRole.USER,
-			content=request.content,
+		user_msg = await self.memory.create_user_message(
+			conversation_id=conversation_id, content=request.content
 		)
-		self.db.add(user_msg)
-		await self.db.commit()
 
 		# 2. Load Agent
 		agent = AGENTS.get(request.agent_id, AGENTS["default"])
 
-		# Load History
-		history = await self._get_history(conversation_id)
-
-		if (
-			history
-			and history[-1]["role"] == "user"
-			and history[-1]["content"] == request.content
-		):
-			history.pop()
+		# Load History (exclude the message we just created)
+		history = await self.memory.get_openai_history(
+			conversation_id, exclude_message_ids={user_msg.id}
+		)
 
 		# 3. Create Assistant Message Placeholder (to link traces)
-		assistant_msg = Message(
-			conversation_id=conversation_id,
-			role=MessageRole.ASSISTANT,
-			content="",
+		assistant_msg = await self.memory.create_assistant_placeholder(
+			conversation_id=conversation_id
 		)
-		self.db.add(assistant_msg)
-		await self.db.commit()
-		await self.db.refresh(assistant_msg)
 		assistant_msg_id = assistant_msg.id
 
 		final_answer_chunks = []
@@ -190,16 +94,9 @@ class ChatService:
 		# 4. Stream Agent Events
 		async for event in agent.process_turn(history, request.content):
 			if event.type != "answer":
-				trace = TraceLog(
-					message_id=assistant_msg_id,
-					type=event.type,
-					content=event.content,
-					tool_name=event.tool_name,
-					tool_args=event.tool_args,
-					tool_call_id=event.tool_call_id,
+				await self.memory.append_trace(
+					assistant_message_id=assistant_msg_id, event=event
 				)
-				self.db.add(trace)
-				await self.db.commit()
 
 			if event.type == "answer":
 				final_answer_chunks.append(event.content)
@@ -207,10 +104,10 @@ class ChatService:
 			yield json.dumps(event.model_dump()) + "\n"
 
 		# 5. Update Assistant Message with Final Content
-		await self.db.refresh(assistant_msg)
 		full_content = "".join(final_answer_chunks)
-		assistant_msg.content = full_content
-		await self.db.commit()
+		await self.memory.finalize_assistant_message(
+			assistant_message_id=assistant_msg_id, content=full_content
+		)
 
 
 async def update_conversation_title(conversation_id: str, user_text: str):

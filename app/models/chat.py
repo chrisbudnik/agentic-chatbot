@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from sqlalchemy import (
 	Column,
@@ -33,9 +33,11 @@ class Conversation(Base):
 
 	id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
 	title = Column(String, nullable=True)
-	created_at = Column(DateTime, default=datetime.utcnow)
+	created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 	updated_at = Column(
-		DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+		DateTime,
+		default=lambda: datetime.now(timezone.utc),
+		onupdate=lambda: datetime.now(timezone.utc),
 	)
 	status = Column(String, default="active")
 
@@ -53,7 +55,7 @@ class Message(Base):
 	conversation_id = Column(String, ForeignKey("conversations.id"))
 	role = Column(String, nullable=False)  # user, assistant, system
 	content = Column(Text, nullable=True)  # Final message content
-	created_at = Column(DateTime, default=datetime.utcnow)
+	created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 	# Metadata for metrics
 	meta_data = Column(JSON, default={})
@@ -82,7 +84,7 @@ class TraceLog(Base):
 	tool_name = Column(String, nullable=True)
 	tool_call_id = Column(String, nullable=True)
 	tool_args = Column(JSON, nullable=True)
-	timestamp = Column(DateTime, default=datetime.utcnow)
+	timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 	message = relationship("Message", back_populates="traces")
 
@@ -94,6 +96,6 @@ class Feedback(Base):
 	message_id = Column(String, ForeignKey("messages.id"))
 	rating = Column(Integer)  # 1 or -1
 	comment = Column(Text, nullable=True)
-	created_at = Column(DateTime, default=datetime.utcnow)
+	created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 	message = relationship("Message", back_populates="feedback")
