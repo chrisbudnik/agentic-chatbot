@@ -4,7 +4,12 @@ from app.agents.models import AgentEvent, CallbackContext
 
 
 type CallbackFunctionOutput = (
-	AsyncIterator[AgentEvent] | List[AgentEvent] | AgentEvent | str | None
+	AsyncIterator[AgentEvent]
+	| List[AgentEvent]
+	| AgentEvent
+	| str
+	| dict[str, Any]
+	| None
 )
 
 type BeforeAgentCallback = Callable[
@@ -66,37 +71,29 @@ async def run_callback_with_events(
 		if inspect.isasyncgen(result):
 			async for event in result:
 				yield event
-
-			# context was not used in callback, set to None
-			if not getattr(context, context_attr):
-				setattr(context, context_attr, None)
+			# For streaming callbacks, we rely on the callback to write any
+			# "return value" into `context.<context_attr>` (if desired).
 
 		else:
-			# Normal async return
-			result = await result
+			# Callback may be:
+			# - async function (returns awaitable)
+			# - sync function (returns a value immediately)
+			if inspect.isawaitable(result):
+				result = await result
 
-			# Case 2 — value (e.g., modified_input)
-			if isinstance(result, str | None):
-				if result:
-					setattr(context, context_attr, result)
-
-			# Case 3 — event
-			elif isinstance(result, AgentEvent):
+			# Case 2 — single event
+			if isinstance(result, AgentEvent):
 				yield result
 
-			# Case 4 — list of events
-			elif isinstance(result, list):
+			# Case 3 — list/tuple of events
+			elif isinstance(result, (list, tuple)):
 				for ev in result:
 					if isinstance(ev, AgentEvent):
 						yield ev
 
-			# Case 5 — fallback
-			else:
-				yield AgentEvent(
-					type="callback_unrecognized_output",
-					content=f"Callback returned unknown type: {type(result)}",
-					callback_type=callback_type,
-				)
+			# Case 4 — "value" return (string / dict / other)
+			elif result is not None:
+				setattr(context, context_attr, result)
 
 	except Exception as e:
 		yield AgentEvent(
@@ -107,6 +104,6 @@ async def run_callback_with_events(
 
 	yield AgentEvent(
 		type="execute_callback_result",
-		content=f"Completed {callback_type} with value: '{getattr(context, context_attr)}'",
+		content=f"Completed {callback_type} with value: {getattr(context, context_attr)!r}",
 		callback_type=callback_type,
 	)
