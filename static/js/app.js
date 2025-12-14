@@ -17,8 +17,26 @@ const currentChatTitle = document.getElementById("current-chat-title");
 const inputArea = document.getElementById("input-area");
 let currentAgentId = "default";
 
+function setComposerEnabled(enabled) {
+    // Keep the composer visible at all times; just enable/disable it.
+    messageInput.disabled = !enabled;
+    sendBtn.disabled = !enabled;
+
+    if (enabled) {
+        messageInput.placeholder = "Type a message to the agent...";
+        inputArea.style.opacity = "1";
+        inputArea.style.pointerEvents = "auto";
+    } else {
+        messageInput.placeholder = "Select a chat or click “+ New Chat” to start...";
+        inputArea.style.opacity = "0.6";
+        inputArea.style.pointerEvents = "none";
+    }
+}
+
 // Init
 async function init() {
+    setComposerEnabled(false);
+
     // Dropdown Logic (Attach immediately)
     dropdownTrigger.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -225,7 +243,7 @@ async function deleteConversation(id) {
                     </div>
                 </div>
             </div>`;
-                inputArea.style.display = "none";
+                setComposerEnabled(false);
                 document.getElementById("current-chat-title").textContent = "New Chat";
                 document.getElementById("current-chat-id").style.display = "none";
             }
@@ -251,7 +269,7 @@ async function createConversation() {
     const idDisplay = document.getElementById("current-chat-id");
     idDisplay.textContent = conv.id;
     idDisplay.style.display = "block";
-    inputArea.style.display = "block";
+    setComposerEnabled(true);
 }
 
 async function loadConversation(id) {
@@ -266,7 +284,7 @@ async function loadConversation(id) {
     const idDisplay = document.getElementById("current-chat-id");
     idDisplay.textContent = data.id || id;
     idDisplay.style.display = "block";
-    inputArea.style.display = "block";
+    setComposerEnabled(true);
     data.messages.forEach(renderFullMessage);
     scrollToBottom();
 }
