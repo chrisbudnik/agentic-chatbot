@@ -38,6 +38,6 @@ dev = [
 line-length = 70
 
 [tool.ruff.format]
-quote-style = "single"
+quote-style = "double"
 indent-style = "tab"
 docstring-code-format = true
