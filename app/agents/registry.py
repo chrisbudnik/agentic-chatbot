@@ -1,4 +1,7 @@
-from app.agents.examples.dummy_agent import DummyAgent, DummyAgentWithError
+from app.agents.examples.dummy_agent import (
+	DummyAgent,
+	DummyAgentWithError,
+)
 from app.agents.examples.example_tools import DummySearchTool
 from app.agents.examples.example_agent import demo_agent
 from app.agents.llm_agent import LLMAgent
@@ -6,20 +9,20 @@ from app.agents.llm_agent import LLMAgent
 
 # Simple Registry
 AGENTS = {
-    "default": LLMAgent(
-        name="LLM Agent", 
-        description="The default LLM agent.", 
-        tools=[DummySearchTool()]
-    ),
-    "dummy": DummyAgent(
-        name="Dummy Agent",
-        description="A simple agent that simulates search.", 
-        tools=[DummySearchTool()]
-    ),
-    "dummy_error": DummyAgentWithError(
-        name="Error Agent", 
-        description="An agent that always returns an error.", 
-        tools=[DummySearchTool()]
-    ),
-    "demo_agent": demo_agent
+	"default": LLMAgent(
+		name="LLM Agent",
+		description="The default LLM agent.",
+		tools=[DummySearchTool()],
+	),
+	"dummy": DummyAgent(
+		name="Dummy Agent",
+		description="A simple agent that simulates search.",
+		tools=[DummySearchTool()],
+	),
+	"dummy_error": DummyAgentWithError(
+		name="Error Agent",
+		description="An agent that always returns an error.",
+		tools=[DummySearchTool()],
+	),
+	"demo_agent": demo_agent,
 }
