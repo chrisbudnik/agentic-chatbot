@@ -80,7 +80,7 @@ class BaseAgent(ABC):
             callback_fn=self.after_agent_callback,
             callback_input={"final_answer": final_answer},
             context=context,
-            context_attr="after_events",
+            context_attr="final_answer",
             callback_type="after_agent_callback"
         ):
             yield event
@@ -102,8 +102,10 @@ class BaseAgent(ABC):
 
         # MAIN AGENT LOGIC
         final_answer_event = None
+        user_input = context.modified_input or user_input
+
         async for event in self._process_turn(
-            history=history, user_input=context.modified_input, callback_context=context
+            history=history, user_input=user_input, callback_context=context
         ):
             if event.type == "answer":
                 final_answer_event = event
