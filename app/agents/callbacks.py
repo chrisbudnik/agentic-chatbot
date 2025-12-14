@@ -53,32 +53,28 @@ async def run_callback_with_events(
         if inspect.isasyncgen(result):
             async for event in result:
                 yield event
-            setattr(context, context_attr, None)  # no “value result”
+            
+            # context was not used in callback, set to None
+            if not getattr(context, context_attr):
+                setattr(context, context_attr, None)
 
         else:
             # Normal async return
             result = await result
 
             # Case 2 — value (e.g., modified_input)
-            if not isinstance(result, AgentEvent):
-                setattr(context, context_attr, result)
-
-                yield AgentEvent(
-                    type="execute_callback_result",
-                    content=f"Modified user input: {result}",
-                    callback_type=callback_type
-                )
+            if isinstance(result, str | None):
+                if result:
+                    setattr(context, context_attr, result)
 
             # Case 3 — event
             elif isinstance(result, AgentEvent):
-                getattr(context, context_attr).append(result)
                 yield result
 
             # Case 4 — list of events
             elif isinstance(result, list):
                 for ev in result:
                     if isinstance(ev, AgentEvent):
-                        getattr(context, context_attr).append(ev)
                         yield ev
 
             # Case 5 — fallback
@@ -95,3 +91,9 @@ async def run_callback_with_events(
             content=f"{type(e).__name__}: {e}",
             callback_type=callback_type
         )
+
+    yield AgentEvent(
+        type="execute_callback_result",
+        content=f"Completed {callback_type} with value: '{getattr(context, context_attr)}'",
+        callback_type=callback_type
+    )
