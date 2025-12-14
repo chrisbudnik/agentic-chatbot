@@ -5,6 +5,7 @@ import json
 
 from app.agents.models import AgentEvent, CallbackContext
 from app.agents.callbacks import run_callback_with_events
+from app.agents.callbacks import BeforeToolCallback, AfterToolCallback
 from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall
 
 
@@ -19,8 +20,8 @@ class BaseTool(ABC):
 
     def __init__(
         self, 
-        before_tool_callback: Optional[Callable] = None, 
-        after_tool_callback: Optional[Callable] = None
+        before_tool_callback: Optional[BeforeToolCallback] = None, 
+        after_tool_callback: Optional[AfterToolCallback] = None
     ):
         self.before_tool_callback = before_tool_callback
         self.after_tool_callback = after_tool_callback
@@ -92,7 +93,7 @@ class BaseTool(ABC):
         
         context.tool_input = None
         context.tool_result = None
-        
+
         # -------------------------------------------------------------------
         # 1. Start tool execution, preprocess args for api
         # -------------------------------------------------------------------
@@ -106,6 +107,7 @@ class BaseTool(ABC):
             tool_args=fn_args,
             tool_call_id=tool_call.id
         )
+        
         # -------------------------------------------------------------------
         # 2. Before Callback
         # -------------------------------------------------------------------
@@ -132,9 +134,10 @@ class BaseTool(ABC):
                 )
                 context.tool_result = error_msg
                 yield AgentEvent(type="error", content=error_msg)
-            else:
-                result = await self.run(**effective_args)
-                context.tool_result = str(result)
+
+            
+            result = await self.run(**effective_args)
+            context.tool_result = str(result)
 
         except Exception as e:
             error_msg = f"Error executing tool '{self.name}': {type(e).__name__}: {e}"
@@ -150,7 +153,7 @@ class BaseTool(ABC):
         if self.after_tool_callback and context.tool_result:
             async for event in run_callback_with_events(
                 callback_fn=self.after_tool_callback,
-                callback_input={"result": context.tool_result},
+                callback_input={"tool_result": context.tool_result},
                 context=context,
                 context_attr="tool_result",
                 callback_type="after_tool_callback"
