@@ -24,7 +24,7 @@ class CallbackContext:
 
     def __init__(self):
         self.modified_input: Optional[str] = None
-        self.after_events: List[AgentEvent] = []
+        self.final_answer: Optional[str] = None
         self.tool_input: Optional[dict] = None
         self.tool_result: Optional[str] = None
     
