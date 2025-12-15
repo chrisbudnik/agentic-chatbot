@@ -43,3 +43,9 @@ testpaths = [
 pythonpath = "."
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.mypy]
+strict = true
+mypy_path = "."
+ignore_missing_imports = false
+explicit_package_bases = true
