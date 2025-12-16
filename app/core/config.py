@@ -1,3 +1,4 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,11 +12,18 @@ class Settings(BaseSettings):
 	OPENAI_API_KEY: str = ""
 
 	# Google Cloud Platform & Vertex AI RAG
-	GCO_PROJECT_ID: str = ""
+	GCP_PROJECT_ID: str = Field(
+		default="",
+		validation_alias=AliasChoices("GCP_PROJECT_ID", "gcp_project_id", "GCO_PROJECT_ID"),
+	)
 	VERTEXAI_APP_ENGINE_ID: str = ""
 
 	# Configurations
-	model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+	model_config = SettingsConfigDict(
+		env_file=".env",
+		env_file_encoding="utf-8",
+		extra="ignore",
+	)
 
 
 settings = Settings()
