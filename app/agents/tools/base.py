@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel
 from typing import Any, Type, Dict, Optional, AsyncIterator
 import json
+from types import SimpleNamespace
 
 from app.agents.models import AgentEvent, CallbackContext
 from app.agents.callbacks import run_callback_with_events
@@ -9,12 +10,15 @@ from app.agents.callbacks import BeforeToolCallback, AfterToolCallback
 from openai.types.chat.chat_completion_message_tool_call import (
 	ChatCompletionMessageToolCall,
 )
+from app.core.logging import get_logger
+
+
+logger = get_logger(__name__)
 
 
 # ============================================================
 # BASE TOOL
 # ============================================================
-
 
 class BaseTool(ABC):
 	name: str = "base_tool"
@@ -110,6 +114,7 @@ class BaseTool(ABC):
 			tool_args=fn_args,
 			tool_call_id=tool_call.id,
 		)
+		logger.info(f"Executing tool '{fn_name}' with args: {fn_args}")
 
 		# -------------------------------------------------------------------
 		# 2. Before Callback
@@ -139,9 +144,13 @@ class BaseTool(ABC):
 				)
 				context.tool_result = error_msg
 				yield AgentEvent(type="error", content=error_msg)
+			else:
+				logger.info(f"Running tool '{self.name}' with args: {effective_args}")
 
-			result = await self.run(**effective_args)
-			context.tool_result = str(result)
+				result = await self.run(**effective_args)
+				context.tool_result = str(result)
+
+				logger.info(f"Tool '{self.name}' returned result: {context.tool_result[:500]}")
 
 		except Exception as e:
 			error_msg = (
