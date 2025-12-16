@@ -93,14 +93,28 @@ class BaseAgent(ABC):
 		self, history: List[dict], user_input: str
 	) -> AsyncIterator[AgentEvent]:
 		context = CallbackContext()
+		"""
+		Process a single turn of the agent.
 
+		Args:
+			history: The history of the conversation.
+			user_input: The user input.
+
+		Yields:
+			AsyncIterator[AgentEvent]: An async iterator of agent events.
+		"""
+
+		# -------------------------------------------------------------------
 		# BEFORE CALLBACK
+		# -------------------------------------------------------------------
 		async for event in self.process_before_agent_callback(
 			user_input, history, context
 		):
 			yield event
 
+		# -------------------------------------------------------------------
 		# MAIN AGENT LOGIC
+		# -------------------------------------------------------------------
 		final_answer_event = None
 		user_input = context.modified_input or user_input
 
@@ -114,7 +128,9 @@ class BaseAgent(ABC):
 				break
 			yield event
 
+		# -------------------------------------------------------------------
 		# AFTER CALLBACK
+		# -------------------------------------------------------------------
 		if final_answer_event:
 			async for event in self.process_after_agent_callback(
 				final_answer_event, context
