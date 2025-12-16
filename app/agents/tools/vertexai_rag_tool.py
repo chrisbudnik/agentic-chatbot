@@ -19,8 +19,9 @@ class DiscoveryEngineClient:
         self.project_id = project_id
         self.app_engine = app_engine
         self.access_token = creds.token
+        self.httpx_client = httpx.AsyncClient(timeout=httpx.Timeout(30, read=300, write=60, connect=10))
 
-    def search(self, query: str):
+    async def search(self, query: str):
         """
         Performs a search query against the Discovery Engine API.
         """
@@ -50,8 +51,8 @@ class DiscoveryEngineClient:
                 }
             }
         }
-        response = httpx.post(
-            url, headers=headers, json=data, timeout=httpx.Timeout(30, read=300, write=60, connect=10)
+        response = await self.httpx_client.post(
+            url, headers=headers, json=data
         )
         return response.json()
 
@@ -71,5 +72,5 @@ class VertexAIRagTool(BaseTool):
         Runs a search query using Vertex AI Discovery Engine.
         """
         client = DiscoveryEngineClient(app_engine=settings.VERTEXAI_APP_ENGINE_ID)
-        results = client.search(query)
+        results = await client.search(query)
         return results
