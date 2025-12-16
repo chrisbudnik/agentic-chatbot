@@ -347,17 +347,6 @@ button.send-btn:hover {
     background: var(--accent-hover);
 }
 
-/* Disabled composer state (we keep it visible; JS toggles disabled attributes) */
-textarea:disabled {
-    cursor: not-allowed;
-    opacity: 0.9;
-}
-
-button.send-btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
 /* Traces & Tools */
 /* Traces & Tools */
 .process-wrapper {
