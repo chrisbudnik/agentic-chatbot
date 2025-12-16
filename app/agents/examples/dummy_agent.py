@@ -2,12 +2,13 @@ from typing import AsyncIterator, List
 
 from app.agents.base import BaseAgent
 from app.agents.models import AgentEvent
+from app.agents.models import CallbackContext
 import asyncio
 
 
 class DummyAgent(BaseAgent):
 	async def _process_turn(
-		self, history: List[dict], user_input: str
+		self, history: List[dict], user_input: str, callback_context: CallbackContext
 	) -> AsyncIterator[AgentEvent]:
 		yield AgentEvent(type="thought", content="Thinking...")
 		await asyncio.sleep(0.3)
