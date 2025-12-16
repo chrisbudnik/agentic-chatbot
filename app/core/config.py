@@ -10,6 +10,10 @@ class Settings(BaseSettings):
 
 	OPENAI_API_KEY: str = ""
 
+	# Google Cloud Platform & Vertex AI RAG
+	GCO_PROJECT_ID: str = ""
+	VERTEXAI_APP_ENGINE_ID: str = ""
+
 	# Configurations
 	model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
