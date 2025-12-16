@@ -4,6 +4,10 @@ from app.agents.base import BaseAgent, AgentEvent
 from app.agents.tools.base import BaseTool
 from app.core.config import settings
 from app.agents.models import CallbackContext
+from app.core.logging import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class LLMAgent(BaseAgent):
@@ -65,6 +69,8 @@ class LLMAgent(BaseAgent):
 			else None
 		)
 
+		logger.info(f"LLMAgent with message: {user_input}")
+
 		# -------------------------------------------------------------------
 		# 3. ReAct / Tool-Use Loop
 		# - handle LLM response,
@@ -72,7 +78,7 @@ class LLMAgent(BaseAgent):
 		# - feed tool results back to LLM history
 		# -------------------------------------------------------------------
 		while True:
-
+			logger.info("Sending request to OpenAI LLM...")
 			try:
 				response = await self.client.chat.completions.create(
 					model=self.model,
@@ -84,6 +90,8 @@ class LLMAgent(BaseAgent):
 				print(f"Error in process_turn: {str(e)}")
 				yield AgentEvent(type="error", content=str(e))
 				break
+			
+			logger.info("Received response from OpenAI LLM.")
 
 			message = response.choices[0].message
 			content = message.content
@@ -105,6 +113,8 @@ class LLMAgent(BaseAgent):
 				yield AgentEvent(type="thought", content=content)
 
 			for tool_call in tool_calls:
+				logger.info(f"Executing tool: {tool_call.function.name}")
+				
 				# new context for each tool - avoid race conditions
 				tool_context: CallbackContext = CallbackContext()
 				tool = self.tools.get(tool_call.function.name)

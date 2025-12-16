@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
 	PROJECT_NAME: str = "Agentic Chatbot"
 	API_V1_STR: str = "/api/v1"
+	LOG_LEVEL: str = "INFO"
 
 	# Database
 	DATABASE_URL: str = "sqlite+aiosqlite:///./chatbot.db"
