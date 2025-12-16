@@ -8,6 +8,7 @@ dependencies = [
     "aiosqlite>=0.22.0",
     "alembic>=1.17.2",
     "fastapi>=0.124.4",
+    "google-auth>=2.45.0",
     "greenlet>=3.3.0",
     "httpx>=0.28.1",
     "openai>=2.11.0",
