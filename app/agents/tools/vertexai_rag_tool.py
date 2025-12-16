@@ -46,18 +46,20 @@ class DiscoveryEngineClient:
                     "ignoreAdversarialQuery": True,
                     "includeCitations": False,
                     "summaryResultCount": 10,
-                    "languageCode": "pl"
+                    "languageCode": "en"
                 }
             }
         }
-        response = httpx.post(url, headers=headers, json=data)
+        response = httpx.post(
+            url, headers=headers, json=data, timeout=httpx.Timeout(30, read=300, write=60, connect=10)
+        )
         return response.json()
 
 
 
 class VertexAIRagTool(BaseTool):
     name = "search_tool"
-    description = "Searches the database for information."
+    description = "Searches the database for information about recommender systems."
 
     class Input(BaseModel):
         query: str
