@@ -18,3 +18,7 @@ chatbot.db
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+
+# logging
+logs/
+*.log
