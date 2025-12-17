@@ -5,6 +5,7 @@ from google.auth.transport.requests import Request
 
 from app.core.config import settings
 from app.agents.tools.base import BaseTool
+from app.agents.models import CallbackContext
 
 
 class DiscoveryEngineClient:
@@ -67,7 +68,7 @@ class VertexAIRagTool(BaseTool):
 
     input_schema = Input
 
-    async def run(self, query: str):
+    async def run(self, context: CallbackContext, query: str):
         """
         Runs a search query using Vertex AI Discovery Engine.
         """

@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from app.agents.tools.base import BaseTool
+from app.agents.models import CallbackContext
 import asyncio
 
 
@@ -12,7 +13,7 @@ class DummySearchTool(BaseTool):
 
 	input_schema = Input
 
-	async def run(self, query: str):
+	async def run(self, context: CallbackContext, query: str):
 		await asyncio.sleep(10)  # Simulate a delay
 		return (
 			f"Results for '{query}': Found 3 documents related to this topic."

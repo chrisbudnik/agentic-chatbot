@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel
 from typing import Any, Type, Dict, Optional, AsyncIterator
 import json
+import inspect
 from types import SimpleNamespace
 
 from app.agents.models import AgentEvent, CallbackContext
@@ -77,6 +78,96 @@ class BaseTool(ABC):
 			"name": tool_name,
 			"content": result,
 		}
+	
+
+	# ============================================================
+	# TOOL OUTPUT PARSING (async iterator of events)
+	# ============================================================
+
+	def _call_run(self, *, context: CallbackContext, effective_args: dict[str, Any]):
+		"""
+		Invoke `run()` with either kwargs or context parameter.
+
+		Some tools (including tests) implement `run(self, **args)` without a
+		`context` parameter. Newer tools may accept `context` explicitly.
+		"""
+		sig = inspect.signature(self.run)
+		params = sig.parameters
+		accepts_kwargs = any(
+			p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+		)
+		accepts_context = "context" in params or accepts_kwargs
+
+		if accepts_context:
+			return self.run(context=context, **effective_args)
+		return self.run(**effective_args)
+
+
+	async def run_tool_and_parse_output(
+		self,
+		effective_args: Any,
+		context: CallbackContext,
+	) -> AsyncIterator[AgentEvent]:
+		"""
+		Function runs tool and parses output into events.
+		Tool can either be async generator or awaitable function.
+		We handle both cases here and yield events as needed.
+		Tools cannot be synchronous functions - this will block the event loop.
+		Result is returned via context.tool_result.
+
+		Args:
+		    effective_args (Any): The input arguments for the tool (provided by LLM).
+		    context (CallbackContext): The callback context to store intermediate results.
+
+		Yields:
+		    AgentEvent: Events generated during tool execution.
+		"""
+
+		if not isinstance(effective_args, dict):
+			error_msg = (
+				f"Tool '{self.name}' expected arguments as a "
+				f"dict, got {type(effective_args).__name__}."
+			)
+			context.tool_result = error_msg
+			yield AgentEvent(type="error", content=error_msg)
+			return
+		
+		try:
+			logger.info(f"Running tool '{self.name}' with args: {effective_args}")
+
+			result = self._call_run(context=context, effective_args=effective_args)
+
+			# Case 1: async generator
+			if inspect.isasyncgen(result):
+				async for event in result:
+					yield event
+			
+			# Case 2: awaitable function
+			elif inspect.isawaitable(result):
+				result = await result
+				context.tool_result = str(result)
+
+			else:
+				# Error: Tool .run() returned an invalid result type
+				raise ValueError(
+					f"Tool '{self.name}' .run() returned an invalid result. "
+					f"Expected async generator or awaitable function, got {type(result).__name__}"
+				)
+
+			if context.tool_result:
+				logger.info(
+					f"Tool '{self.name}' returned result: {context.tool_result[:500]}"
+				)
+
+		except Exception as e:
+			context.tool_result = f"{type(e).__name__}: {e}"
+			yield AgentEvent(
+				type="error",
+				content=context.tool_result,
+				tool_name=self.name,
+				tool_args=effective_args,
+			)
+
 
 	# ============================================================
 	# TOOL EXECUTION with CALLBACKS
@@ -136,28 +227,11 @@ class BaseTool(ABC):
 		# -------------------------------------------------------------------
 		# 3. Run Tool - use tool's run method
 		# -------------------------------------------------------------------
-		try:
-			if not isinstance(effective_args, dict):
-				error_msg = (
-					f"Tool '{self.name}' expected arguments as a "
-					f"dict, got {type(effective_args).__name__}."
-				)
-				context.tool_result = error_msg
-				yield AgentEvent(type="error", content=error_msg)
-			else:
-				logger.info(f"Running tool '{self.name}' with args: {effective_args}")
-
-				result = await self.run(**effective_args)
-				context.tool_result = str(result)
-
-				logger.info(f"Tool '{self.name}' returned result: {context.tool_result[:500]}")
-
-		except Exception as e:
-			error_msg = (
-				f"Error executing tool '{self.name}': {type(e).__name__}: {e}"
-			)
-			context.tool_result = error_msg
-			yield AgentEvent(type="error", content=error_msg)
+		async for event in self.run_tool_and_parse_output(
+			effective_args=effective_args,
+			context=context,
+		):
+			yield event
 
 		# -------------------------------------------------------------------
 		# 4. After Callback
