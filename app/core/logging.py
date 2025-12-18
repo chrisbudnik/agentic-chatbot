@@ -5,7 +5,7 @@ from app.core.config import settings
 import os
 
 
-def setup_logging():
+def setup_logging() -> None:
     log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
     
     # Create logs directory if it doesn't exist
@@ -21,7 +21,10 @@ def setup_logging():
     )
 
 def get_logger(name: str) -> logging.Logger:
+    """
+    Returns a logger instance with the specified name.
+    """
+    setup_logging()
     return logging.getLogger(name)
 
-# Initialize logging on import
-setup_logging()
+

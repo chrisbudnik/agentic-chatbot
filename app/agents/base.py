@@ -14,7 +14,6 @@ from app.agents.callbacks import (
 # BASE AGENT
 # ============================================================
 
-
 class BaseAgent(ABC):
 	def __init__(
 		self,

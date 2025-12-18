@@ -21,7 +21,7 @@ type AfterAgentCallback = Callable[
 ]  # final_answer: AgentEvent
 
 type BeforeToolCallback = Callable[
-	[dict, CallbackContext], CallbackFunctionOutput
+	[dict[str, Any], CallbackContext], CallbackFunctionOutput
 ]  # tool_args: dict
 
 type AfterToolCallback = Callable[

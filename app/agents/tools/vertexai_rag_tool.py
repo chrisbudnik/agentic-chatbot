@@ -22,7 +22,7 @@ class DiscoveryEngineClient:
         self.access_token = creds.token
         self.httpx_client = httpx.AsyncClient(timeout=httpx.Timeout(30, read=300, write=60, connect=10))
 
-    async def search(self, query: str):
+    async def search(self, query: str) -> dict[str, str]:
         """
         Performs a search query against the Discovery Engine API.
         """
@@ -68,7 +68,7 @@ class VertexAIRagTool(BaseTool):
 
     input_schema = Input
 
-    async def run(self, context: CallbackContext, query: str):
+    async def run(self, context: CallbackContext, query: str) -> dict[str, str]:
         """
         Runs a search query using Vertex AI Discovery Engine.
         """

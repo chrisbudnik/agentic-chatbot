@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from typing import Any, Type, Dict, Optional, AsyncIterator
 import json
 import inspect
-from types import SimpleNamespace
 
 from app.agents.models import AgentEvent, CallbackContext
 from app.agents.callbacks import run_callback_with_events

@@ -22,7 +22,7 @@ class AgentEvent(BaseModel):
 class CallbackContext:
 	"""Stores final result of each callback."""
 
-	def __init__(self):
+	def __init__(self) -> None:
 		self.modified_input: Optional[str] = None
 		# After-agent callbacks may choose to store a modified "final answer"
 		# (either as an AgentEvent or as raw content, depending on the demo).
@@ -30,5 +30,5 @@ class CallbackContext:
 		self.tool_input: Optional[dict[str, Any]] = None
 		self.tool_result: Optional[str] = None
 
-	def to_dict(self) -> dict:
+	def to_dict(self) -> dict[str, Any]:
 		return dict(self.__dict__)

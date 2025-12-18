@@ -1,10 +1,10 @@
-from typing import AsyncIterator, List
+from typing import AsyncIterator, List, Any
 
 from app.agents.models import CallbackContext, AgentEvent
 
 
 async def example_before_agent_callback(
-	user_input: str, history: List[dict], context: CallbackContext
+	user_input: str, history: List[dict[str, Any]], context: CallbackContext
 ) -> str:
 	"""
 	Before agent callbacks operate on user_input and history before it is processed by the agent.
@@ -67,7 +67,7 @@ async def example_after_agent_callback(
 
 
 async def example_before_tool_callback(
-	tool_args: dict, context: CallbackContext
+	tool_args: dict[str, Any], context: CallbackContext
 ) -> AsyncIterator[AgentEvent]:
 	"""
 	Before tool callbacks operate on tool arguments before the tool is executed.

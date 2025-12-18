@@ -23,7 +23,7 @@ router = APIRouter()
 @router.post("/conversations", response_model=Conversation)
 async def create_conversation(
 	conv_in: ConversationCreate, db: AsyncSession = Depends(get_db)
-):
+) -> Conversation:
 	service = ChatService(db)
 	return await service.create_conversation(title=conv_in.title)
 
@@ -31,13 +31,13 @@ async def create_conversation(
 @router.get("/conversations", response_model=List[Conversation])
 async def list_conversations(
 	limit: int = 20, db: AsyncSession = Depends(get_db)
-):
+) -> List[Conversation]:
 	service = ChatService(db)
 	return await service.get_conversations(limit=limit)
 
 
 @router.get("/agents", response_model=List[AgentInfo])
-async def list_agents():
+async def list_agents() -> List[AgentInfo]:
 	agents_list = []
 	for agent_id, agent in AGENTS.items():
 		agents_list.append(
@@ -57,7 +57,7 @@ async def list_agents():
 )
 async def get_conversation(
 	conversation_id: str, db: AsyncSession = Depends(get_db)
-):
+) -> ConversationDetail:
 	service = ChatService(db)
 	conv = await service.get_conversation(conversation_id)
 	if not conv:
@@ -71,7 +71,7 @@ async def get_conversation(
 @router.delete("/conversations/{conversation_id}")
 async def delete_conversation(
 	conversation_id: str, db: AsyncSession = Depends(get_db)
-):
+) -> dict[str, str]:
 	service = ChatService(db)
 	success = await service.delete_conversation(conversation_id)
 	if not success:
@@ -85,7 +85,8 @@ async def send_message(
 	request: ChatRequest,
 	background_tasks: BackgroundTasks,
 	db: AsyncSession = Depends(get_db),
-):
+) -> StreamingResponse:
+	
 	service = ChatService(db)
 	# Check if conv exists
 	conv = await service.get_conversation(conversation_id)
