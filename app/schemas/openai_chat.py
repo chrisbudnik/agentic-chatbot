@@ -44,5 +44,3 @@ class OpenAIChatMessage(BaseModel):
 		excluding None fields.
 		"""
 		return self.model_dump(exclude_none=True)
-
-

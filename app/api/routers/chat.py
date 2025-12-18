@@ -86,7 +86,6 @@ async def send_message(
 	background_tasks: BackgroundTasks,
 	db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
-	
 	service = ChatService(db)
 	# Check if conv exists
 	conv = await service.get_conversation(conversation_id)

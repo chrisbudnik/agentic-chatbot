@@ -90,7 +90,7 @@ class LLMAgent(BaseAgent):
 				print(f"Error in process_turn: {str(e)}")
 				yield AgentEvent(type="error", content=str(e))
 				break
-			
+
 			logger.info("Received response from OpenAI LLM.")
 
 			message = response.choices[0].message
@@ -108,26 +108,26 @@ class LLMAgent(BaseAgent):
 			if not tool_calls:
 				yield AgentEvent(type="answer", content=content)
 				break
-			
+
 			if content:
 				yield AgentEvent(type="thought", content=content)
 
 			for tool_call in tool_calls:
 				logger.info(f"Executing tool: {tool_call.function.name}")
-				
+
 				# new context for each tool - avoid race conditions
 				tool_context: CallbackContext = CallbackContext()
 				tool = self.tools.get(tool_call.function.name)
 
 				if tool:
-					async for event in tool.execute(
-						tool_call, tool_context
-					):
+					async for event in tool.execute(tool_call, tool_context):
 						yield event
 					tool_result = tool_context.tool_result
 				else:
 					# this error practically never happens for newer models
-					tool_result = f"Error: Tool '{tool_call.function.name}' not found."
+					tool_result = (
+						f"Error: Tool '{tool_call.function.name}' not found."
+					)
 
 				messages.append(
 					BaseTool.build_tool_result_message(

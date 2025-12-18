@@ -18,5 +18,3 @@ class DummySearchTool(BaseTool):
 		return (
 			f"Results for '{query}': Found 3 documents related to this topic."
 		)
-	
-

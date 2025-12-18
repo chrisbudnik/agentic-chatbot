@@ -15,7 +15,9 @@ class Settings(BaseSettings):
 	# Google Cloud Platform & Vertex AI RAG
 	GCP_PROJECT_ID: str = Field(
 		default="",
-		validation_alias=AliasChoices("GCP_PROJECT_ID", "gcp_project_id", "GCO_PROJECT_ID"),
+		validation_alias=AliasChoices(
+			"GCP_PROJECT_ID", "gcp_project_id", "GCO_PROJECT_ID"
+		),
 	)
 	VERTEXAI_APP_ENGINE_ID: str = ""
 

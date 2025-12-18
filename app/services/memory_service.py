@@ -9,7 +9,11 @@ from sqlalchemy.orm import selectinload
 
 from app.agents.models import AgentEvent
 from app.models.chat import Message, MessageRole, TraceLog
-from app.schemas.openai_chat import OpenAIChatMessage, OpenAIToolCall, OpenAIToolFunction
+from app.schemas.openai_chat import (
+	OpenAIChatMessage,
+	OpenAIToolCall,
+	OpenAIToolFunction,
+)
 
 
 class MemoryService:
@@ -35,16 +39,17 @@ class MemoryService:
 		Build OpenAI-compatible `messages` for the conversation so the agent can run.
 		Optionally exclude freshly-created DB messages (e.g., the current user input).
 		"""
+
 		messages = await self._fetch_messages(conversation_id)
 		if exclude_message_ids:
 			messages = [m for m in messages if m.id not in exclude_message_ids]
-            
+
 		openai_msgs = self._messages_to_openai_history(messages)
 		return [m.to_openai_dict() for m in openai_msgs]
 
-
 	async def _fetch_messages(self, conversation_id: str) -> List[Message]:
 		"""Fetch all messages (and traces) for a conversation in chronological order."""
+
 		stmt = (
 			select(Message)
 			.options(selectinload(Message.traces))
@@ -53,7 +58,6 @@ class MemoryService:
 		)
 		result = await self.db.execute(stmt)
 		return list(result.scalars().all())
-
 
 	def _messages_to_openai_history(
 		self, messages: Sequence[Message]
@@ -76,8 +80,9 @@ class MemoryService:
 
 		return history
 
-
-	def _assistant_message_to_openai(self, msg: Message) -> List[OpenAIChatMessage]:
+	def _assistant_message_to_openai(
+		self, msg: Message
+	) -> List[OpenAIChatMessage]:
 		"""
 		Reconstruct the assistant portion of a turn from trace logs plus the final answer.
 		This produces the OpenAI sequence: assistant(tool_calls) → tool(results) → assistant(answer).
@@ -94,7 +99,9 @@ class MemoryService:
 		out: List[OpenAIChatMessage] = []
 
 		if tool_calls:
-			thought_content = self._first_trace_content(traces, trace_type="thought")
+			thought_content = self._first_trace_content(
+				traces, trace_type="thought"
+			)
 			assistant_step = OpenAIChatMessage(
 				role="assistant",
 				content=thought_content,
@@ -110,7 +117,6 @@ class MemoryService:
 
 		return out
 
-
 	# ============================================================
 	# BUILD: OpenAI messages helpers
 	# ============================================================
@@ -119,6 +125,7 @@ class MemoryService:
 		self, traces: Sequence[TraceLog]
 	) -> Optional[List[OpenAIToolCall]]:
 		"""Build the assistant `tool_calls` array from stored `tool_call` traces."""
+
 		calls: List[OpenAIToolCall] = []
 		for t in traces:
 			if t.type != "tool_call":
@@ -129,12 +136,13 @@ class MemoryService:
 					type="function",
 					function=OpenAIToolFunction(
 						name=t.tool_name,
-						arguments=self._tool_args_to_arguments_json(t.tool_args),
+						arguments=self._tool_args_to_arguments_json(
+							t.tool_args
+						),
 					),
 				)
 			)
 		return calls or None
-
 
 	def _build_openai_tool_result_messages(
 		self, traces: Sequence[TraceLog]
@@ -154,7 +162,6 @@ class MemoryService:
 			)
 		return out
 
-
 	def _first_trace_content(
 		self, traces: Sequence[TraceLog], *, trace_type: str
 	) -> Optional[str]:
@@ -163,7 +170,6 @@ class MemoryService:
 			if t.type == trace_type and t.content:
 				return t.content
 		return None
-
 
 	def _tool_args_to_arguments_json(self, tool_args) -> str:
 		"""Normalize tool arguments into the JSON string format OpenAI expects."""
@@ -176,12 +182,13 @@ class MemoryService:
 		# fallback: keep it representable
 		return json.dumps({"value": str(tool_args)})
 
-
 	# ============================================================
 	# WRITE: persist messages + traces
 	# ============================================================
 
-	async def create_user_message(self, *, conversation_id: str, content: str) -> Message:
+	async def create_user_message(
+		self, *, conversation_id: str, content: str
+	) -> Message:
 		"""Persist the user's message so the turn is durable before the agent runs."""
 		msg = Message(
 			conversation_id=conversation_id,
@@ -193,8 +200,9 @@ class MemoryService:
 		await self.db.refresh(msg)
 		return msg
 
-
-	async def create_assistant_placeholder(self, *, conversation_id: str) -> Message:
+	async def create_assistant_placeholder(
+		self, *, conversation_id: str
+	) -> Message:
 		"""Create the assistant message row used as the parent for streaming traces."""
 		msg = Message(
 			conversation_id=conversation_id,
@@ -206,7 +214,9 @@ class MemoryService:
 		await self.db.refresh(msg)
 		return msg
 
-	async def append_trace(self, *, assistant_message_id: str, event: AgentEvent) -> None:
+	async def append_trace(
+		self, *, assistant_message_id: str, event: AgentEvent
+	) -> None:
 		"""Persist a non-answer agent event as a `TraceLog` linked to the assistant message."""
 		trace = TraceLog(
 			message_id=assistant_message_id,
@@ -232,5 +242,3 @@ class MemoryService:
 		msg.content = content
 		self.db.add(msg)
 		await self.db.commit()
-
-

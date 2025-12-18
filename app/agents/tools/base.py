@@ -20,6 +20,7 @@ logger = get_logger(__name__)
 # BASE TOOL
 # ============================================================
 
+
 class BaseTool(ABC):
 	name: str = "base_tool"
 	description: str = "A base tool"
@@ -77,13 +78,14 @@ class BaseTool(ABC):
 			"name": tool_name,
 			"content": result,
 		}
-	
 
 	# ============================================================
 	# TOOL OUTPUT PARSING (async iterator of events)
 	# ============================================================
 
-	def _call_run(self, *, context: CallbackContext, effective_args: dict[str, Any]):
+	def _call_run(
+		self, *, context: CallbackContext, effective_args: dict[str, Any]
+	):
 		"""
 		Invoke `run()` with either kwargs or context parameter.
 
@@ -100,7 +102,6 @@ class BaseTool(ABC):
 		if accepts_context:
 			return self.run(context=context, **effective_args)
 		return self.run(**effective_args)
-
 
 	async def run_tool_and_parse_output(
 		self,
@@ -130,17 +131,21 @@ class BaseTool(ABC):
 			context.tool_result = error_msg
 			yield AgentEvent(type="error", content=error_msg)
 			return
-		
-		try:
-			logger.info(f"Running tool '{self.name}' with args: {effective_args}")
 
-			result = self._call_run(context=context, effective_args=effective_args)
+		try:
+			logger.info(
+				f"Running tool '{self.name}' with args: {effective_args}"
+			)
+
+			result = self._call_run(
+				context=context, effective_args=effective_args
+			)
 
 			# Case 1: async generator
 			if inspect.isasyncgen(result):
 				async for event in result:
 					yield event
-			
+
 			# Case 2: awaitable function
 			elif inspect.isawaitable(result):
 				result = await result
@@ -166,7 +171,6 @@ class BaseTool(ABC):
 				tool_name=self.name,
 				tool_args=effective_args,
 			)
-
 
 	# ============================================================
 	# TOOL EXECUTION with CALLBACKS
