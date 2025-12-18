@@ -43,4 +43,4 @@ migrate:
 	uv run alembic upgrade head
 
 test:
-	uv run pytest tests/ 
+	uv run pytest tests/

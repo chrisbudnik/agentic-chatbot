@@ -76,4 +76,3 @@ DESIGN.md      # Architecture overview
 ---
 
 Want an even **shorter** version, a **marketing-style** version, or a **GitHub-optimized** version with images/badges?
-

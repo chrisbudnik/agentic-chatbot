@@ -20,6 +20,7 @@ class MockTool(BaseTool):
 			raise ValueError("Test Error")
 		return f"Result: {query}"
 
+
 class StreamingTool(BaseTool):
 	name = "streaming_tool"
 	description = "A tool that yields events"
@@ -109,8 +110,12 @@ async def test_execute_streaming_tool_yields_events():
 		events.append(event)
 
 	# streamed events should be present
-	assert any(e.type == "thought" and e.content == "working on hello" for e in events)
-	assert any(e.type == "tool_result" and e.content == "partial hello" for e in events)
+	assert any(
+		e.type == "thought" and e.content == "working on hello" for e in events
+	)
+	assert any(
+		e.type == "tool_result" and e.content == "partial hello" for e in events
+	)
 
 	# final tool_result event emitted by BaseTool.execute should match context.tool_result
 	assert ctx.tool_result == "Result: hello"

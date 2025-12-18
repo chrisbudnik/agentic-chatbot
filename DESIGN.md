@@ -5,15 +5,15 @@
 The system follows a typical 3-tier web architecture with a focus on modularity to support AI agent extensibility.
 
 ### Components
-1.  **Frontend (Client)**: 
-    - Pure HTML/CSS/Vanilla JS. 
+1.  **Frontend (Client)**:
+    - Pure HTML/CSS/Vanilla JS.
     - Served statically by the Backend.
     - Communicates via REST API (and optionally WebSocket) for chat interactions.
-2.  **Backend (Server)**: 
+2.  **Backend (Server)**:
     - **FastAPI** application acting as the orchestrator.
     - **Service Layer**: Decouples API routes from business logic (Agent processing).
     - **Agent Runtime**: Local module handling LLM interactions and tool execution.
-3.  **Database**: 
+3.  **Database**:
     - **PostgreSQL**: Relational storage for structured data (conversations, tool logs).
 
 ### Directory Structure
@@ -105,7 +105,7 @@ We use SQLAlchemy ORM.
 - `DELETE /{id}` - Delete.
 
 ### `/api/chat`
-- `POST /{conversation_id}/message` - Send user message. 
+- `POST /{conversation_id}/message` - Send user message.
     - **Payload**: `{ "content": "Hello", "agent_id": "optional" }`
     - **Response**: Stream of events or final JSON object containing full response + steps.
 - `POST /{conversation_id}/feedback/{message_id}` - Submit feedback.

@@ -41,7 +41,9 @@ async def _create_conversation(session: AsyncSession) -> Conversation:
 
 
 @pytest.mark.asyncio
-async def test_get_openai_history_simple_user_and_assistant(db_session: AsyncSession):
+async def test_get_openai_history_simple_user_and_assistant(
+	db_session: AsyncSession,
+):
 	conv = await _create_conversation(db_session)
 
 	user = Message(
@@ -121,7 +123,10 @@ async def test_get_openai_history_tool_call_roundtrip(db_session: AsyncSession):
 		{
 			"id": "call_1",
 			"type": "function",
-			"function": {"name": "search", "arguments": json.dumps({"q": "cats"})},
+			"function": {
+				"name": "search",
+				"arguments": json.dumps({"q": "cats"}),
+			},
 		}
 	]
 
@@ -138,17 +143,25 @@ async def test_get_openai_history_tool_call_roundtrip(db_session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_exclude_message_ids_and_persistence_helpers(db_session: AsyncSession):
+async def test_exclude_message_ids_and_persistence_helpers(
+	db_session: AsyncSession,
+):
 	conv = await _create_conversation(db_session)
 	mem = MemoryService(db_session)
 
 	# Persist a user message and ensure we can exclude it from history.
-	user_msg = await mem.create_user_message(conversation_id=conv.id, content="Hi")
-	history = await mem.get_openai_history(conv.id, exclude_message_ids={user_msg.id})
+	user_msg = await mem.create_user_message(
+		conversation_id=conv.id, content="Hi"
+	)
+	history = await mem.get_openai_history(
+		conv.id, exclude_message_ids={user_msg.id}
+	)
 	assert history == []
 
 	# Create assistant placeholder and persist a trace + final answer.
-	assistant_msg = await mem.create_assistant_placeholder(conversation_id=conv.id)
+	assistant_msg = await mem.create_assistant_placeholder(
+		conversation_id=conv.id
+	)
 	await mem.append_trace(
 		assistant_message_id=assistant_msg.id,
 		event=AgentEvent(type="thought", content="Thinking..."),
@@ -160,5 +173,3 @@ async def test_exclude_message_ids_and_persistence_helpers(db_session: AsyncSess
 	# Verify the reconstructed history includes assistant final content.
 	history2 = await mem.get_openai_history(conv.id)
 	assert history2[-1] == {"role": "assistant", "content": "Done."}
-
-

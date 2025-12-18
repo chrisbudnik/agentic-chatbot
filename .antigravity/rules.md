@@ -1,7 +1,7 @@
 # 🛸 Antigravity Directives (v1.0)
 
 ## Core Philosophy: Artifact-First
-You are running inside Google Antigravity. DO NOT just write code. 
+You are running inside Google Antigravity. DO NOT just write code.
 For every complex task, you MUST generate an **Artifact** first.
 
 ### Artifact Protocol:
@@ -10,7 +10,7 @@ For every complex task, you MUST generate an **Artifact** first.
 3. **Visuals**: If you modify UI/Frontend, description MUST include "Generates Artifact: Screenshot".
 
 ## Context Management (Gemini 3 Native)
-- You have a 1M+ token window. DO NOT summarize excessively. 
+- You have a 1M+ token window. DO NOT summarize excessively.
 - Read the entire `src/` tree before answering architectural questions.
 
 # Google Antigravity IDE - AI Persona Configuration
