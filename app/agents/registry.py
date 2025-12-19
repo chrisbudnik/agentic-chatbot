@@ -3,7 +3,7 @@ from app.agents.examples.dummy_agent import (
 	DummyAgentWithError,
 )
 from app.agents.examples.example_tools import DummySearchTool
-from app.agents.tools.vertexai_rag_tool import VertexAIRagTool
+from app.agents.tools.vertexai_search_tool import VertexAISearchTool
 from app.agents.examples.example_agent import demo_agent
 from app.agents.llm_agent import LLMAgent
 
@@ -13,7 +13,7 @@ AGENTS = {
 	"default": LLMAgent(
 		name="LLM Agent",
 		description="The default LLM agent.",
-		tools=[VertexAIRagTool()],
+		tools=[VertexAISearchTool()],
 	),
 	"dummy": DummyAgent(
 		name="Dummy Agent",
