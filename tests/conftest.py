@@ -1,4 +1,5 @@
 import pytest
+from typing import AsyncIterator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -6,7 +7,7 @@ from app.core.database import Base
 
 
 @pytest.fixture
-async def db_session() -> AsyncSession:
+async def db_session() -> AsyncIterator[AsyncSession]:
 	"""
 	Create an isolated in-memory SQLite DB per test, including all tables.
 	"""
