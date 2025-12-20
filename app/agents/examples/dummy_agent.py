@@ -21,8 +21,16 @@ class DummyAgent(BaseAgent):
 			content="Searching...",
 			tool_name="search_tool",
 		)
-		result = await self.tools["search_tool"].run(query=user_input)
+		result = await self.tools["search_tool"].run(
+			context=callback_context, query=user_input
+		)
 		yield AgentEvent(type="tool_result", content=result)
+
+		yield AgentEvent(
+			type="citations",
+			content="Found some citations",
+			citations=["https://example.com/1", "https://example.com/2"],
+		)
 
 		yield AgentEvent(
 			type="answer",
@@ -32,7 +40,10 @@ class DummyAgent(BaseAgent):
 
 class DummyAgentWithError(BaseAgent):
 	async def _process_turn(
-		self, history: List[dict], user_input: str
+		self,
+		history: List[dict],
+		user_input: str,
+		callback_context: CallbackContext,
 	) -> AsyncIterator[AgentEvent]:
 		try:
 			raise ValueError("This is ValueError message")
