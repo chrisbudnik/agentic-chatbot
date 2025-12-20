@@ -1,35 +1,11 @@
 import json
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import Base
 from app.models.chat import Conversation, Message, MessageRole, TraceLog
 from app.services.memory_service import MemoryService
 from app.agents.models import AgentEvent
-
-
-@pytest.fixture
-async def db_session() -> AsyncSession:
-	"""
-	Create an isolated in-memory SQLite DB per test, including all tables.
-	"""
-	engine = create_async_engine("sqlite+aiosqlite:///:memory:", future=True)
-	async with engine.begin() as conn:
-		await conn.run_sync(Base.metadata.create_all)
-
-	SessionLocal = sessionmaker(
-		autocommit=False,
-		autoflush=False,
-		bind=engine,
-		class_=AsyncSession,
-		expire_on_commit=False,
-	)
-	async with SessionLocal() as session:
-		yield session
-
-	await engine.dispose()
 
 
 async def _create_conversation(session: AsyncSession) -> Conversation:
