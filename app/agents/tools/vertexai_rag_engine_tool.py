@@ -2,6 +2,10 @@ import httpx
 from google.auth import default
 from google.auth.transport.requests import Request
 from typing import Any, Dict, Optional
+from pydantic import BaseModel
+from typing import AsyncIterator
+from app.agents.tools.base import BaseTool
+from app.agents.models import CallbackContext, AgentEvent
 
 
 class RagEngineClient:
@@ -108,178 +112,63 @@ class RagEngineClient:
 			},
 		}
 
-		return await self._post(url, payload)
-
-	# ---------------------------------------------------------------------
-	# Generation with retrieval tool (Gemini / foundation model)
-	# ---------------------------------------------------------------------
-
-	async def generate_with_retrieval(
-		self,
-		prompt: str,
-		model_id: str,
-		similarity_top_k: int = 1,
-		generation_method: str = "generateContent",
-	) -> Dict[str, Any]:
-		"""
-		 Generates summary content using Gemini foundation model
-		 based on retrieved contexts (chunks) from RAG Engine.
-		 In addition to chunks, grounding supports and retrieval queries
-		 are also provided in the response.
-
-		Calls: POST .../models/{MODEL_ID}:{GENERATION_METHOD}
-
-		 Result example
-		 {
-		 "candidates": [
-		     {
-		     "avgLogprobs": "number",
-		     "content": {
-		         "parts": [
-		             {
-		                 "text": "string"
-		             }
-		         ],
-		         "role": "string"
-		     },
-		     "finishReason": "string",
-		     "groundingMetadata": {
-		         "groundingChunks": [
-		         {
-		             "retrievedContext": {
-		             "ragChunk": {
-		                 "pageSpan": {
-		                     "firstPage": "integer",
-		                     "lastPage": "integer"
-		                 },
-		                 "text": "string"
-		             },
-		             "text": "string",
-		             "title": "string",
-		             "uri": "string"
-		             }
-		         }
-		         ],
-		         "groundingSupports": [
-		         {
-		             "confidenceScores": [
-		                 "number"
-		             ],
-		             "groundingChunkIndices": [
-		                 "integer"
-		             ],
-		             "segment": {
-		                 "endIndex": "integer",
-		                 "startIndex": "integer",
-		                 "text": "string"
-		             }
-		         }
-		         ],
-		         "retrievalQueries": [
-		         "string"
-		         ]
-		     }
-		     }
-		 ],
-		 "createTime": "string",
-		 "modelVersion": "string",
-		 "responseId": "string",
-		 "usageMetadata": {
-		     "candidatesTokenCount": "integer",
-		     "candidatesTokensDetails": [
-		     {
-		         "modality": "string",
-		         "tokenCount": "integer"
-		     }
-		     ],
-		     "promptTokenCount": "integer",
-		     "promptTokensDetails": [
-		     {
-		         "modality": "string",
-		         "tokenCount": "integer"
-		     }
-		     ],
-		     "thoughtsTokenCount": "integer",
-		     "totalTokenCount": "integer",
-		     "trafficType": "string"
-		 }
-		 }
-
-		"""
-
-		url = (
-			f"https://{self.location}-aiplatform.googleapis.com/v1beta1/"
-			f"projects/{self.project_id}/locations/{self.location}/"
-			f"publishers/google/models/{model_id}:{generation_method}"
-		)
-
-		payload = {
-			"contents": {"role": "user", "parts": {"text": prompt}},
-			"tools": {
-				"retrieval": {
-					"disable_attribution": False,
-					"vertex_rag_store": {
-						"rag_resources": {
-							"rag_corpus": f"projects/{self.project_id}/locations/{self.location}/ragCorpora/{self.rag_engine}"
-						},
-						"similarity_top_k": similarity_top_k,
-						# "vector_distance_threshold": "0.5"
-					},
-				}
-			},
-		}
-
 		response = await self._post(url, payload)
-		return self.process_rag_response(response)
+		return self.process_context_retrieval(response)
 
-	def process_rag_response(self, response: Dict[str, Any]) -> str:
+	def process_context_retrieval(self, response: Dict[str, Any]) -> str:
 		"""
-		Process the response from generate_with_retrieval
+		Process the response from retrieve_contexts
 		and extract the generated content along with
 		grounding information.
 		"""
 
-		candidates = response.get("candidates", [])
-		if not candidates:
-			return "LLM response contains no retrieved candidates."
+		contexts = response.get("contexts", {}).get("contexts", [])
+		if not contexts:
+			return "No contexts retrieved from RAG Engine."
 
-		candidate = candidates[0]
-		summary = (
-			candidate.get("content", {}).get("parts", [{}])[0].get("text", "")
-		)
-
-		grounding_metadata = candidate.get("groundingMetadata", {})
-		grounding_chunks = grounding_metadata.get("groundingChunks", [])
-
-		sources = []
-		for chunk in grounding_chunks:
-			source_info = {}
-			retrieved_context = chunk.get("retrievedContext", {})
-
-			source_info["title"] = retrieved_context.get("title", "No Title")
-			source_info["uri"] = retrieved_context.get("uri", "No URI")
-			source_info["text"] = retrieved_context.get("text", "No Text")
-			source_info["page_span"] = retrieved_context.get(
-				"ragChunk", {}
-			).get("pageSpan", {})
-
-			sources.append(source_info)
-
-		supports = []
-		for support in grounding_metadata.get("groundingSupports", []):
-			segment = support.get("segment", {})
-			support_info = {
-				"text": segment.get("text", "No Text"),
-				"confidence_score": support.get("confidenceScores"),
-				"start_index": segment.get("startIndex"),
-				"end_index": segment.get("endIndex"),
+		results = []
+		for context in contexts:
+			result = {
+				"text": context.get("text", "No Text"),
+				"source_name": context.get(
+					"sourceDisplayName", "No Source Name"
+				),
+				"source_uri": context.get("sourceUri", "No Source URI"),
+				"page_span": context.get("chunk", {}).get("pageSpan", {}),
 			}
-			supports.append(support_info)
+			results.append(result)
 
-		output = {
-			"summary": summary,
-			"sources": sources,
-			"supports": supports,
-		}
+		return results
 
-		return output
+
+class VertexAIRagEngineTool(BaseTool):
+	name = "search_tool"
+	description = (
+		"Searches the database for information about recommender systems."
+	)
+
+	class Input(BaseModel):
+		query: str
+
+	input_schema = Input
+
+	async def run(
+		self, context: CallbackContext, query: str
+	) -> AsyncIterator[AgentEvent]:
+		"""
+		Runs a search query using Vertex AI Discovery Engine.
+		"""
+		client = RagEngineClient(
+			rag_engine="2305843009213693952",
+			location="europe-west1",
+		)
+		results = await client.retrieve_contexts(query, similarity_top_k=3)
+		context.tool_result = str(results)
+
+		citations = [item["source_name"] for item in results]
+
+		yield AgentEvent(
+			type="citations",
+			content=f"Search completed. Retrieved {len(results)} contexts.",
+			citations=citations,
+		)
