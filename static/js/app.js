@@ -371,8 +371,15 @@ function renderCitations(content, container) {
         citations.forEach(c => {
             const li = document.createElement("li");
             const a = document.createElement("a");
-            a.href = c.url;
-            a.textContent = c.title || c.url;
+
+            if (typeof c === 'string') {
+                a.href = c;
+                a.textContent = c;
+            } else {
+                a.href = c.url;
+                a.textContent = c.title || c.url;
+            }
+
             a.target = "_blank";
             a.rel = "noopener noreferrer";
             li.appendChild(a);
@@ -502,7 +509,7 @@ async function sendMessage() {
 
 function handleStreamEvent(event, tracesDiv, bubble, citationsDiv) {
     if (event.type === "citations") {
-        renderCitations(event.content, citationsDiv);
+        renderCitations(event.citations || event.content, citationsDiv);
     } else {
         const el = createTraceElement(event);
         tracesDiv.appendChild(el);
