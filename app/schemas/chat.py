@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from pydantic_settings import SettingsConfigDict
 from typing import List, Optional, Any, Dict
 from datetime import datetime
 
@@ -18,8 +19,7 @@ class Conversation(ConversationBase):
 	updated_at: datetime
 	status: str
 
-	class Config:
-		from_attributes = True
+	model_config = SettingsConfigDict(from_attributes=True)
 
 
 # --- Trace/Step Schemas ---
@@ -34,8 +34,7 @@ class TraceLog(TraceLogBase):
 	id: str
 	timestamp: datetime
 
-	class Config:
-		from_attributes = True
+	model_config = SettingsConfigDict(from_attributes=True)
 
 
 # --- Message Schemas ---
@@ -53,8 +52,7 @@ class Message(MessageBase):
 	created_at: datetime
 	traces: List[TraceLog] = []
 
-	class Config:
-		from_attributes = True
+	model_config = SettingsConfigDict(from_attributes=True)
 
 
 class ConversationDetail(Conversation):
