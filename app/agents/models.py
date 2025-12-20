@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, Any
 
 
@@ -8,6 +8,7 @@ from typing import Optional, Any
 
 
 class AgentEvent(BaseModel):
+	model_config = ConfigDict(extra="allow")
 	type: str
 	content: str
 	tool_name: Optional[str] = None
