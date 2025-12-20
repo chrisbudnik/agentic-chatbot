@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -6,6 +7,7 @@ class Settings(BaseSettings):
 	PROJECT_NAME: str = "Agentic Chatbot"
 	API_V1_STR: str = "/api/v1"
 	LOG_LEVEL: str = "INFO"
+	LOG_MODE: Literal["standard", "json"] = "standard"
 
 	# Database
 	DATABASE_URL: str = "sqlite+aiosqlite:///./chatbot.db"

@@ -15,7 +15,7 @@ setup: install
 # Run development server
 dev:
 	@echo "Starting development server..."
-	uv run uvicorn app.main:app --reload
+	uv run uvicorn app.main:app --reload --log-config app/core/logging.yaml
 
 # Run production server
 run:
