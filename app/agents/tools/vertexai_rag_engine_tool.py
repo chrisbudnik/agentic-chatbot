@@ -4,8 +4,14 @@ from google.auth.transport.requests import Request
 from typing import Any, Dict, Optional
 from pydantic import BaseModel
 from typing import AsyncIterator
+
 from app.agents.tools.base import BaseTool
 from app.agents.models import CallbackContext, AgentEvent
+from app.core.logging import get_logger
+from app.core.config import settings
+
+
+logger = get_logger(__name__)
 
 
 class RagEngineClient:
@@ -123,17 +129,20 @@ class RagEngineClient:
 		"""
 
 		contexts = response.get("contexts", {}).get("contexts", [])
+
 		if not contexts:
-			return "No contexts retrieved from RAG Engine."
+			return None
 
 		results = []
 		for context in contexts:
+			source_uri = context.get("sourceUri", "No Source URI")
+
 			result = {
 				"text": context.get("text", "No Text"),
 				"source_name": context.get(
 					"sourceDisplayName", "No Source Name"
 				),
-				"source_uri": context.get("sourceUri", "No Source URI"),
+				"source_uri": source_uri,
 				"page_span": context.get("chunk", {}).get("pageSpan", {}),
 			}
 			results.append(result)
@@ -159,16 +168,18 @@ class VertexAIRagEngineTool(BaseTool):
 		Runs a search query using Vertex AI Discovery Engine.
 		"""
 		client = RagEngineClient(
-			rag_engine="2305843009213693952",
-			location="europe-west1",
+			rag_engine=settings.VERTEXAI_RAG_ENGINE_ID,
+			location=settings.VERTEXAI_RAG_ENGINE_REGION,
 		)
 		results = await client.retrieve_contexts(query, similarity_top_k=3)
 		context.tool_result = str(results)
 
-		citations = [item["source_name"] for item in results]
+		citations = {
+			item["source_name"]: item["source_uri"] for item in results
+		}
+		logger.info(f"Citations: {citations}")
 
 		yield AgentEvent(
 			type="citations",
-			content=f"Search completed. Retrieved {len(results)} contexts.",
-			citations=citations,
+			content=citations,
 		)
