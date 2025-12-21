@@ -75,7 +75,7 @@ class VertexAISearchTool(BaseTool):
 		Runs a search query using Vertex AI Discovery Engine.
 		"""
 		client = DiscoveryEngineClient(
-			app_engine=settings.VERTEXAI_APP_ENGINE_ID
+			app_engine=settings.VERTEXAI_SEARCH_APPLICATION_ID
 		)
 		results = await client.search(query)
 		return results
