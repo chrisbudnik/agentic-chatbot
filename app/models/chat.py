@@ -87,6 +87,31 @@ class TraceLog(Base):
 	timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 	message = relationship("Message", back_populates="traces")
+	citations = relationship(
+		"Citation",
+		back_populates="trace",
+		cascade="all, delete-orphan",
+	)
+
+
+class Citation(Base):
+	__tablename__ = "citations"
+
+	id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+	trace_id = Column(String, ForeignKey("trace_logs.id"), nullable=False)
+	source_type = Column(String, nullable=False)
+
+	title = Column(String, nullable=False)
+	url = Column(String, nullable=True)
+	text = Column(Text, nullable=True)
+	page_span_start = Column(Integer, nullable=True)
+	page_span_end = Column(Integer, nullable=True)
+	gcs_path = Column(String, nullable=True)
+	source_metadata = Column(JSON, default={})
+
+	created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+	trace = relationship("TraceLog", back_populates="citations")
 
 
 class Feedback(Base):
