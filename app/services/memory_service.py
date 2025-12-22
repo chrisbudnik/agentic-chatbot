@@ -7,13 +7,17 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.agents.models import AgentEvent
-from app.models.chat import Message, MessageRole, TraceLog
+from app.agents.models import AgentEvent, CitationEvent
+from app.models.chat import Message, MessageRole, TraceLog, Citation
 from app.schemas.openai_chat import (
 	OpenAIChatMessage,
 	OpenAIToolCall,
 	OpenAIToolFunction,
 )
+from app.core.logging import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class MemoryService:
@@ -214,14 +218,68 @@ class MemoryService:
 		await self.db.refresh(msg)
 		return msg
 
-	async def append_trace(
-		self, *, assistant_message_id: str, event: AgentEvent
+	async def append_citations_trace(
+		self,
+		*,
+		assistant_message_id: str,
+		event: CitationEvent,
 	) -> None:
-		"""Persist a non-answer agent event as a `TraceLog` linked to the assistant message."""
+		"""
+		Save a CitationEvent as a TraceLog with associated Citations records.
+		Creates a link via trace_id that allows tracing citations back to
+		the agent step / message that generated them.
+		"""
 		trace = TraceLog(
 			message_id=assistant_message_id,
 			type=event.type,
-			content=event.content,
+			content=str(event.content),
+		)
+		self.db.add(trace)
+
+		# assigns trace.id without committing
+		await self.db.flush()
+
+		for c in event.citations:
+			self.db.add(
+				Citation(
+					trace_id=trace.id,
+					source_type=c.source_type,
+					title=c.title,
+					url=c.url,
+					text=c.text,
+					page_span_start=c.page_span_start,
+					page_span_end=c.page_span_end,
+					gcs_path=c.gcs_path,
+					source_metadata=c.source_metadata,
+				)
+			)
+		# commit trace + citations together
+		await self.db.commit()
+
+	async def append_trace(
+		self, *, assistant_message_id: str, event: AgentEvent
+	) -> None:
+		"""
+		Persist a non-answer agent event as a `TraceLog` linked to the assistant message.
+		Citations are saved to
+		"""
+
+		if isinstance(event, CitationEvent):
+			logger.info("Appending CitationEvent trace")
+			try:
+				await self.append_citations_trace(
+					assistant_message_id=assistant_message_id,
+					event=event,
+				)
+				return
+			except Exception as e:
+				logger.error(f"Failed to append CitationEvent trace: {e}")
+				raise e
+
+		trace = TraceLog(
+			message_id=assistant_message_id,
+			type=event.type,
+			content=str(event.content),
 			tool_name=event.tool_name,
 			tool_args=event.tool_args,
 			tool_call_id=event.tool_call_id,
@@ -233,6 +291,7 @@ class MemoryService:
 		self, *, assistant_message_id: str, content: str
 	) -> None:
 		"""Write the final assistant answer content into the placeholder message row."""
+
 		result = await self.db.execute(
 			select(Message).where(Message.id == assistant_message_id)
 		)
