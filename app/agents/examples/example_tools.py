@@ -14,7 +14,7 @@ class DummySearchTool(BaseTool):
 	input_schema = Input
 
 	async def run(self, context: CallbackContext, query: str):
-		await asyncio.sleep(10)  # Simulate a delay
+		await asyncio.sleep(5)  # Simulate a delay
 		return (
 			f"Results for '{query}': Found 3 documents related to this topic."
 		)
