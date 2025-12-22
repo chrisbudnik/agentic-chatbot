@@ -22,3 +22,9 @@ chatbot.db
 # logging
 logs/
 *.log
+
+
+#temporary test files
+test.ipynb
+test*.py
+TODO.md
