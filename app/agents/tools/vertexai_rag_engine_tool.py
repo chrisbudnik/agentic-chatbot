@@ -6,10 +6,15 @@ from pydantic import BaseModel
 from typing import AsyncIterator
 
 from app.agents.tools.base import BaseTool
-from app.agents.models import CallbackContext, AgentEvent
+from app.agents.models import (
+	CallbackContext,
+	AgentEvent,
+	CitationItem,
+	CitationEvent,
+)
 from app.core.logging import get_logger
 from app.core.config import settings
-
+from app.services.storage_service import get_storage_service
 
 logger = get_logger(__name__)
 
@@ -135,14 +140,12 @@ class RagEngineClient:
 
 		results = []
 		for context in contexts:
-			source_uri = context.get("sourceUri", "No Source URI")
-
 			result = {
 				"text": context.get("text", "No Text"),
 				"source_name": context.get(
 					"sourceDisplayName", "No Source Name"
 				),
-				"source_uri": source_uri,
+				"source_uri": context.get("sourceUri", "No Source URI"),
 				"page_span": context.get("chunk", {}).get("pageSpan", {}),
 			}
 			results.append(result)
@@ -166,7 +169,11 @@ class VertexAIRagEngineTool(BaseTool):
 	) -> AsyncIterator[AgentEvent]:
 		"""
 		Runs a search query using Vertex AI Discovery Engine.
+		Tool result is stored in context.tool_result, as we cannot
+		use return in an async generator function.
+		Attaches citations via CitationEvent and CitationItem(s).
 		"""
+
 		client = RagEngineClient(
 			rag_engine=settings.VERTEXAI_RAG_ENGINE_ID,
 			location=settings.VERTEXAI_RAG_ENGINE_REGION,
@@ -174,12 +181,23 @@ class VertexAIRagEngineTool(BaseTool):
 		results = await client.retrieve_contexts(query, similarity_top_k=3)
 		context.tool_result = str(results)
 
-		citations = {
-			item["source_name"]: item["source_uri"] for item in results
-		}
-		logger.info(f"Citations: {citations}")
+		storage_service = get_storage_service()
 
-		yield AgentEvent(
-			type="citations",
-			content=citations,
-		)
+		citations = [
+			CitationItem(
+				source_type="pdf",
+				title=item.get("source_name"),
+				url=storage_service.generate_signed_url(
+					item.get("source_uri"), expiration=1800
+				),
+				text=item.get("text"),
+				page_span_start=item.get("page_span", {}).get("firstPage"),
+				page_span_end=item.get("page_span", {}).get("lastPage"),
+				gcs_path=item.get("source_uri"),
+			)
+			for item in results
+			if item.get("source_uri")
+		]
+		logger.info(f"Citations: {[c.model_dump() for c in citations]}")
+
+		yield CitationEvent(citations=citations)
