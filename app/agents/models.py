@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional, Any
+from typing import Optional, Any, Literal
 
 
 # ============================================================
@@ -15,6 +15,26 @@ class AgentEvent(BaseModel):
 	tool_args: Optional[dict[str, Any]] = None
 	tool_call_id: Optional[str] = None
 	callback_type: Optional[str] = None
+
+
+class CitationItem(BaseModel):
+	source_type: Literal["pdf", "website", "image"]
+	title: str
+	url: Optional[str] = None
+	text: Optional[str] = None
+	page_span_start: Optional[int] = None
+	page_span_end: Optional[int] = None
+	gcs_path: Optional[str] = None
+
+	source_metadata: Optional[dict[str, Any]] = None
+
+
+class CitationEvent(AgentEvent):
+	model_config = ConfigDict(extra="allow")
+
+	type: str = "citations"
+	content: str = "Citations generated."
+	citations: list[CitationItem] = []
 
 
 # ============================================================
