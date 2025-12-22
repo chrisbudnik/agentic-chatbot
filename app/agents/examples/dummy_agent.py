@@ -1,7 +1,7 @@
 from typing import AsyncIterator, List
 
 from app.agents.base import BaseAgent
-from app.agents.models import AgentEvent
+from app.agents.models import AgentEvent, CitationEvent, CitationItem
 from app.agents.models import CallbackContext
 import asyncio
 
@@ -24,12 +24,22 @@ class DummyAgent(BaseAgent):
 		result = await self.tools["search_tool"].run(
 			context=callback_context, query=user_input
 		)
-		yield AgentEvent(type="tool_result", content=result)
+		yield AgentEvent(type="tool_result", content=str(result))
 
-		yield AgentEvent(
-			type="citations",
+		yield CitationEvent(
 			content="Found some citations",
-			citations=["https://example.com/1", "https://example.com/2"],
+			citations=[
+				CitationItem(
+					source_type="website",
+					title="https://example.com/1",
+					url="https://example.com/1",
+				),
+				CitationItem(
+					source_type="website",
+					title="https://example.com/2",
+					url="https://example.com/2",
+				),
+			],
 		)
 
 		yield AgentEvent(
