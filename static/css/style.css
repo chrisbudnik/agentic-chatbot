@@ -490,6 +490,10 @@ button.send-btn:hover {
 
 .citations li {
     margin-bottom: 0.3rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .citations li:last-child {
@@ -506,6 +510,12 @@ button.send-btn:hover {
 .citations a:hover {
     color: var(--accent-hover);
     text-decoration: underline;
+}
+
+.citation-page-range {
+    color: var(--text-secondary);
+    font-size: 0.85em;
+    white-space: nowrap;
 }
 
 /* Markdown Content Helper Classes */

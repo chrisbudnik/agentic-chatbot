@@ -340,7 +340,7 @@ function renderFullMessage(msg) {
     if (msg.traces && msg.traces.length > 0) {
         msg.traces.forEach(t => {
             if (t.type === "citations") {
-                renderCitations(t.content, citationsDiv);
+                renderCitations(t.citations || t.content, citationsDiv);
             } else {
                 const tEl = createTraceElement(t);
                 tracesDiv.appendChild(tEl);
@@ -359,7 +359,36 @@ function renderFullMessage(msg) {
 function renderCitations(content, container) {
     try {
         const citations = typeof content === 'string' ? JSON.parse(content) : content;
-        if (!citations || !Array.isArray(citations) || citations.length === 0) return;
+
+        let citationList = [];
+        if (Array.isArray(citations)) {
+            citationList = citations.map(c => {
+                if (typeof c === 'string') return { title: c, url: c };
+                return {
+                    title: c.title || c.url,
+                    url: c.url,
+                    page_span_start: c.page_span_start,
+                    page_span_end: c.page_span_end,
+                };
+            });
+        } else if (citations && typeof citations === 'object') {
+            citationList = Object.entries(citations).map(([name, url]) => ({ title: name, url: url }));
+        }
+
+        if (citationList.length === 0) return;
+
+        const formatPageRange = (c) => {
+            const start = c?.page_span_start;
+            const end = c?.page_span_end;
+
+            if (typeof start !== "number" && typeof end !== "number") return "";
+            if (typeof start === "number" && typeof end === "number") {
+                if (start === end) return `p. ${start}`;
+                return `pp. ${start}\u2013${end}`;
+            }
+            const single = (typeof start === "number") ? start : end;
+            return `p. ${single}`;
+        };
 
         container.innerHTML = ""; // Clear existing
         const title = document.createElement("div");
@@ -368,21 +397,24 @@ function renderCitations(content, container) {
         container.appendChild(title);
 
         const list = document.createElement("ul");
-        citations.forEach(c => {
+        citationList.forEach(c => {
             const li = document.createElement("li");
             const a = document.createElement("a");
 
-            if (typeof c === 'string') {
-                a.href = c;
-                a.textContent = c;
-            } else {
-                a.href = c.url;
-                a.textContent = c.title || c.url;
-            }
+            a.href = c.url;
+            a.textContent = c.title;
 
             a.target = "_blank";
             a.rel = "noopener noreferrer";
             li.appendChild(a);
+
+            const pageRange = formatPageRange(c);
+            if (pageRange) {
+                const meta = document.createElement("span");
+                meta.className = "citation-page-range";
+                meta.textContent = pageRange;
+                li.appendChild(meta);
+            }
             list.appendChild(li);
         });
         container.appendChild(list);
