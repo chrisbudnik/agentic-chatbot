@@ -71,24 +71,6 @@ class StorageService:
 		)
 		return url
 
-	# async def refresh_citations_signed_urls(
-	#         self, messages: list[Message], expiration: int = 3600
-	#     ) -> list[Message]:
-	#     """
-	#     Refresh signed URLs for a list of citations in place.
-
-	#     Args:
-	#         citations: List of citation objects with gcs_path and url attributes
-	#         expiration: Expiration time in seconds for the signed URLs
-	#     """
-	#     for msg in messages:
-	#         logger.info(msg)
-	#         for trace in (msg.traces or []):
-	#             for c in (trace.citations or []):
-	#                 if (not c.url) and c.gcs_path:
-	#                     c.url = self.generate_signed_url(c.gcs_path, expiration=expiration)
-	#     return messages
-
 	async def refresh_citations_signed_urls(
 		self, messages: list[Message], expiration: int = 3600
 	) -> list[Message]:
