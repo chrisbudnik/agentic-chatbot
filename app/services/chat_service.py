@@ -7,6 +7,7 @@ import json
 from app.models.chat import (
 	Conversation,
 	Message,
+	TraceLog,
 )
 from app.schemas.chat import ChatRequest
 from app.agents.registry import AGENTS
@@ -14,6 +15,11 @@ from app.core.config import settings
 from app.core.database import SessionLocal
 from openai import AsyncOpenAI
 from app.services.memory_service import MemoryService
+from app.agents.base import BaseAgent
+from app.core.logging import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class ChatService:
@@ -34,7 +40,9 @@ class ChatService:
 		result = await self.db.execute(
 			select(Conversation)
 			.options(
-				selectinload(Conversation.messages).selectinload(Message.traces)
+				selectinload(Conversation.messages)
+				.selectinload(Message.traces)
+				.selectinload(TraceLog.citations)
 			)
 			.where(Conversation.id == conversation_id)
 		)
@@ -74,9 +82,14 @@ class ChatService:
 		user_msg = await self.memory.create_user_message(
 			conversation_id=conversation_id, content=request.content
 		)
+		logger.info(
+			f"Processing message {user_msg.id} in conversation {conversation_id}"
+		)
 
 		# 2. Load Agent
-		agent = AGENTS.get(request.agent_id, AGENTS["default"])
+		agent: BaseAgent = AGENTS.get(request.agent_id, AGENTS["default"])
+
+		logger.info(f"Using agent {agent.name} for message {user_msg.id}")
 
 		# Load History (exclude the message we just created)
 		history = await self.memory.get_openai_history(
@@ -92,8 +105,12 @@ class ChatService:
 		final_answer_chunks = []
 
 		# 4. Stream Agent Events
+		logger.info(f"Starting agent run for message {user_msg.id}")
+
 		async for event in agent.process_turn(history, request.content):
 			if event.type != "answer":
+				logger.info(f"Processing Agent Event: {event.type}")
+
 				await self.memory.append_trace(
 					assistant_message_id=assistant_msg_id, event=event
 				)
@@ -117,12 +134,19 @@ async def update_conversation_title(conversation_id: str, user_text: str):
 	try:
 		# 1. Generate Title
 		client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+
+		prompt = (
+			"You are a helpful assistant. Generate a short, concise "
+			"title (max 6 words) for a chat that starts with the following "
+			"user message. Do not use quotes. Output ONLY the title."
+		)
+
 		response = await client.chat.completions.create(
 			model="gpt-4o-mini",
 			messages=[
 				{
 					"role": "system",
-					"content": "You are a helpful assistant. Generate a short, concise title (max 6 words) for a chat that starts with the following user message. Do not use quotes. Output ONLY the title.",
+					"content": prompt,
 				},
 				{"role": "user", "content": user_text},
 			],
@@ -141,5 +165,6 @@ async def update_conversation_title(conversation_id: str, user_text: str):
 				conv.title = title
 				session.add(conv)
 				await session.commit()
+
 	except Exception as e:
 		print(f"Error generating title: {e}")
