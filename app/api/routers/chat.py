@@ -16,8 +16,12 @@ from app.schemas.chat import (
 	ChatRequest,
 	AgentInfo,
 )
+from app.core.logging import get_logger
+from app.api.dependencies import StorageServiceDep, ChatServiceDep
+
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 @router.post("/conversations", response_model=Conversation)
@@ -56,15 +60,17 @@ async def list_agents() -> List[AgentInfo]:
 	response_model=ConversationDetail,
 )
 async def get_conversation(
-	conversation_id: str, db: AsyncSession = Depends(get_db)
+	conversation_id: str,
+	chat: ChatServiceDep,
+	storage: StorageServiceDep,
 ) -> ConversationDetail:
-	service = ChatService(db)
-	conv = await service.get_conversation(conversation_id)
+	logger.info(f"Fetching conversation {conversation_id} with signed URLs")
+	conv = await chat.get_conversation(conversation_id)
 	if not conv:
 		raise HTTPException(status_code=404, detail="Conversation not found")
-	# Note: The model relation loading might require explicit eager loading options in service
-	# For now we rely on the Relationship lazy loading but in AsyncIO this requires 'selectinload'
-	# TODO: Add eager loading in Service if relationship is missing in output
+
+	# Refresh signed URLs for citations
+	await storage.refresh_citations_signed_urls(conv.messages)
 	return conv
 
 
@@ -87,15 +93,10 @@ async def send_message(
 	db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
 	service = ChatService(db)
-	# Check if conv exists
 	conv = await service.get_conversation(conversation_id)
 	if not conv:
 		raise HTTPException(status_code=404, detail="Conversation not found")
 
-	# Trigger title generation if it's the first message (or title is still default)
-	# We check if there are no messages OR title is "New Chat".
-	# Since we are about to add a message, the history count check might be tricky if we don't query it.
-	# But checking title is "New Chat" is a good proxy.
 	if conv.title == "New Chat":
 		background_tasks.add_task(
 			update_conversation_title,
