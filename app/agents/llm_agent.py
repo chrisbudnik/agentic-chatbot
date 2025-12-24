@@ -15,6 +15,7 @@ class LLMAgent(BaseAgent):
 		self,
 		name: str,
 		description: str,
+		system_prompt: str,
 		tools: Optional[List[BaseTool]] = None,
 		model: str = "gpt-4.1",
 		before_agent_callback=None,
@@ -23,6 +24,7 @@ class LLMAgent(BaseAgent):
 		super().__init__(
 			name=name,
 			description=description,
+			system_prompt=system_prompt,
 			tools=tools,
 			model=model,
 			before_agent_callback=before_agent_callback,
@@ -54,7 +56,7 @@ class LLMAgent(BaseAgent):
 		messages = [
 			{
 				"role": "system",
-				"content": "You are a helpful assistant. Use tools when necessary.",
+				"content": self.system_prompt,
 			}
 		]
 		messages.extend(history)
@@ -87,7 +89,7 @@ class LLMAgent(BaseAgent):
 					tool_choice="auto" if openai_tools else None,
 				)
 			except Exception as e:
-				print(f"Error in process_turn: {str(e)}")
+				logger.error(f"Error in process_turn: {str(e)}")
 				yield AgentEvent(type="error", content=str(e))
 				break
 
