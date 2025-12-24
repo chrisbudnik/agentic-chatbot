@@ -26,5 +26,7 @@ logs/
 
 #temporary test files
 test.ipynb
-test*.py
 TODO.md
+test1.py
+test2.py
+test3.py
