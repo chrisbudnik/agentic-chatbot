@@ -15,6 +15,7 @@ search_tool = DummySearchTool(
 demo_agent = LLMAgent(
 	name="Demo Agent",
 	description="An example agent that uses a dummy search tool with all possible callbacks.",
+	system_prompt=" You are a helpful assistant. Answer questions based using search tools.",
 	model="gpt-4.1",
 	tools=[search_tool],
 	before_agent_callback=example_before_agent_callback,

@@ -14,11 +14,13 @@ AGENTS = {
 	"default": LLMAgent(
 		name="LLM Agent",
 		description="The default LLM agent.",
+		system_prompt=" You are a helpful assistant. Answer questions based using search tools.",
 		tools=[VertexAISearchTool()],
 	),
 	"rag_engine": LLMAgent(
 		name="LLM Agent (Rag Engine)",
 		description="The default LLM agent.",
+		system_prompt=" You are a helpful assistant. Answer questions based using search tools.",
 		tools=[VertexAIRagEngineTool()],
 	),
 	"dummy": DummyAgent(
