@@ -15,7 +15,11 @@ class SimpleTool(BaseTool):
 
 @pytest.mark.asyncio
 async def test_llm_agent_simple_answer():
-	agent = LLMAgent(name="TestLLM", description="test")
+	agent = LLMAgent(
+		name="TestLLM",
+		description="test",
+		system_prompt="You are a helpful assistant.",
+	)
 
 	# Mock the client
 	mock_response = MagicMock()
@@ -42,7 +46,12 @@ async def test_llm_agent_tool_use_loop():
 	# 3. Tool results "100"
 	# 4. LLM sees "100" and answers "The answer is 100"
 
-	agent = LLMAgent(name="ToolAgent", description="test", tools=[SimpleTool()])
+	agent = LLMAgent(
+		name="ToolAgent",
+		description="test",
+		system_prompt="You are a helpful assistant.",
+		tools=[SimpleTool()],
+	)
 	agent.client = AsyncMock()
 
 	# Response 1: Call Tool
