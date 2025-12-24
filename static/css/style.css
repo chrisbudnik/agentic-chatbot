@@ -170,7 +170,7 @@ body {
 /* Custom Dropdown */
 .custom-dropdown {
     position: relative;
-    width: 200px;
+    width: 320px;
     font-family: var(--font-sans);
     z-index: 100;
     /* Ensure it floats above chat */
@@ -230,22 +230,48 @@ body {
 }
 
 .dropdown-item {
-    padding: 10px 12px;
+    padding: 12px 14px;
     cursor: pointer;
     border-radius: 6px;
     color: var(--text-secondary);
     transition: background 0.1s, color 0.1s;
     font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .dropdown-item:hover {
     background: var(--border-color);
+}
+
+.dropdown-item:hover .dropdown-item-name {
     color: var(--text-primary);
 }
 
 .dropdown-item.selected {
     background: var(--accent);
+}
+
+.dropdown-item.selected .dropdown-item-name {
     color: white;
+}
+
+.dropdown-item.selected .dropdown-item-desc {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.dropdown-item-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: color 0.1s;
+}
+
+.dropdown-item-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    transition: color 0.1s;
 }
 
 @keyframes fadeIn {
@@ -341,10 +367,51 @@ button.send-btn {
     border-radius: 6px;
     cursor: pointer;
     font-weight: 600;
+    position: relative;
+    min-width: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.2s, opacity 0.2s;
 }
 
 button.send-btn:hover {
     background: var(--accent-hover);
+}
+
+button.send-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+button.send-btn .btn-text {
+    transition: opacity 0.2s;
+}
+
+button.send-btn.loading .btn-text {
+    opacity: 0;
+}
+
+button.send-btn .spinner {
+    display: none;
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+button.send-btn.loading .spinner {
+    display: block;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Traces & Tools */
@@ -600,4 +667,108 @@ button.send-btn:hover {
 
 .bubble h3 {
     font-size: 1.1rem;
+}
+
+/* Welcome Screen */
+.welcome-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+}
+
+.welcome-title {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.welcome-content {
+    text-align: left;
+    max-width: 500px;
+    line-height: 1.6;
+}
+
+.welcome-subtitle {
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.welcome-features {
+    list-style: none;
+    padding: 0;
+}
+
+.welcome-feature {
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+}
+
+.welcome-feature-icon {
+    margin-right: 1rem;
+    font-size: 1.2rem;
+}
+
+.welcome-feature-title {
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 0.2rem;
+    font-weight: 600;
+}
+
+.welcome-feature-desc {
+    font-size: 0.95rem;
+}
+
+.welcome-cta {
+    margin-top: 3rem;
+    padding: 1rem;
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    text-align: center;
+    background: rgba(13, 17, 23, 0.5);
+    font-size: 0.9rem;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.5rem 0;
+}
+
+.typing-indicator .dot {
+    width: 8px;
+    height: 8px;
+    background: var(--text-secondary);
+    border-radius: 50%;
+    animation: typingBounce 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator .dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-indicator .dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.typing-indicator .dot:nth-child(3) {
+    animation-delay: 0s;
+}
+
+@keyframes typingBounce {
+    0%, 80%, 100% {
+        transform: scale(0.6);
+        opacity: 0.4;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }

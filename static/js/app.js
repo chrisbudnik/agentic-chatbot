@@ -1,6 +1,7 @@
 const API_BASE = "/api";
 
 let currentConversationId = null;
+let isProcessing = false;
 
 // DOM Elements
 const historyList = document.getElementById("history-list");
@@ -16,6 +17,76 @@ const selectedAgentText = document.getElementById("selected-agent-text");
 const currentChatTitle = document.getElementById("current-chat-title");
 const inputArea = document.getElementById("input-area");
 let currentAgentId = "default";
+
+// Welcome Screen Template
+function renderWelcomeScreen() {
+    return `
+        <div id="welcome-screen" class="welcome-screen">
+            <h1 class="welcome-title">Agentic Chat</h1>
+            <div class="welcome-content">
+                <p class="welcome-subtitle">Explore the capabilities of autonomous AI agents.</p>
+                <ul class="welcome-features">
+                    <li class="welcome-feature">
+                        <span class="welcome-feature-icon">🤖</span>
+                        <div>
+                            <strong class="welcome-feature-title">Multi-Model Agents</strong>
+                            <span class="welcome-feature-desc">Switch between different specialized agents for various tasks.</span>
+                        </div>
+                    </li>
+                    <li class="welcome-feature">
+                        <span class="welcome-feature-icon">🛠️</span>
+                        <div>
+                            <strong class="welcome-feature-title">Tool Integration</strong>
+                            <span class="welcome-feature-desc">Agents can use tools to fetch data and perform actions.</span>
+                        </div>
+                    </li>
+                    <li class="welcome-feature">
+                        <span class="welcome-feature-icon">🔄</span>
+                        <div>
+                            <strong class="welcome-feature-title">Event Callbacks</strong>
+                            <span class="welcome-feature-desc">Hook into the agent lifecycle to monitor execution and trigger side-effects.</span>
+                        </div>
+                    </li>
+                    <li class="welcome-feature">
+                        <span class="welcome-feature-icon">🧠</span>
+                        <div>
+                            <strong class="welcome-feature-title">Transparent Workflows</strong>
+                            <span class="welcome-feature-desc">View the agent's internal thoughts and execution steps in real-time.</span>
+                        </div>
+                    </li>
+                </ul>
+                <div class="welcome-cta">
+                    <span>To get started, click <strong>+ New Chat</strong> in the sidebar.</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Typing Indicator
+function createTypingIndicator() {
+    const indicator = document.createElement("div");
+    indicator.className = "typing-indicator";
+    indicator.id = "typing-indicator";
+    indicator.innerHTML = `
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+    `;
+    return indicator;
+}
+
+// Send Button State Management
+function setSendButtonLoading(loading) {
+    isProcessing = loading;
+    if (loading) {
+        sendBtn.classList.add("loading");
+        sendBtn.disabled = true;
+    } else {
+        sendBtn.classList.remove("loading");
+        sendBtn.disabled = false;
+    }
+}
 
 function setComposerEnabled(enabled) {
     // Keep the composer visible at all times; just enable/disable it.
@@ -35,6 +106,8 @@ function setComposerEnabled(enabled) {
 
 // Init
 async function init() {
+    // Render welcome screen on load
+    chatContainer.innerHTML = renderWelcomeScreen();
     setComposerEnabled(false);
 
     // Dropdown Logic (Attach immediately)
@@ -49,7 +122,8 @@ async function init() {
 
         // Update State
         currentAgentId = item.dataset.value;
-        selectedAgentText.textContent = item.textContent;
+        const nameSpan = item.querySelector(".dropdown-item-name");
+        selectedAgentText.textContent = nameSpan ? nameSpan.textContent : item.textContent;
 
         // Update UI
         document.querySelectorAll(".dropdown-item").forEach(el => el.classList.remove("selected"));
@@ -108,8 +182,18 @@ async function fetchAgents() {
             const div = document.createElement("div");
             div.className = "dropdown-item";
             div.dataset.value = agent.id;
-            div.textContent = agent.name;
-            div.title = agent.description; // Tooltip
+
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "dropdown-item-name";
+            nameSpan.textContent = agent.name;
+            div.appendChild(nameSpan);
+
+            if (agent.description) {
+                const descSpan = document.createElement("span");
+                descSpan.className = "dropdown-item-desc";
+                descSpan.textContent = agent.description;
+                div.appendChild(descSpan);
+            }
 
             if (agent.id === currentAgentId) {
                 div.classList.add("selected");
@@ -203,46 +287,7 @@ async function deleteConversation(id) {
             // content cleared
             if (currentConversationId === id) {
                 currentConversationId = null;
-                chatContainer.innerHTML = `
-            <div id="welcome-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #8b949e;">
-                <h1 style="font-size: 2.5rem; margin-bottom: 2rem; color: var(--text-primary);">Agent Chat</h1>
-                <div style="text-align: left; max-width: 500px; line-height: 1.6;">
-                    <p style="margin-bottom: 2rem; font-size: 1.1rem; text-align: center;">Explore the capabilities of autonomous AI agents.</p>
-                    <ul style="list-style: none; padding: 0;">
-                        <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start;">
-                            <span style="margin-right: 1rem; font-size: 1.2rem;">🤖</span>
-                            <div>
-                                <strong style="color: var(--text-primary); display: block; margin-bottom: 0.2rem;">Multi-Model Agents</strong>
-                                <span style="font-size: 0.95rem;">Switch between different specialized agents for various tasks.</span>
-                            </div>
-                        </li>
-                         <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start;">
-                            <span style="margin-right: 1rem; font-size: 1.2rem;">🛠️</span>
-                            <div>
-                                <strong style="color: var(--text-primary); display: block; margin-bottom: 0.2rem;">Tool Integration</strong>
-                                <span style="font-size: 0.95rem;">Agents can use tools to fetch data and perform actions.</span>
-                            </div>
-                        </li>
-                        <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start;">
-                            <span style="margin-right: 1rem; font-size: 1.2rem;">🔄</span>
-                            <div>
-                                <strong style="color: var(--text-primary); display: block; margin-bottom: 0.2rem;">Event Callbacks</strong>
-                                <span style="font-size: 0.95rem;">Hook into the agent lifecycle to monitor execution and trigger side-effects.</span>
-                            </div>
-                        </li>
-                        <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start;">
-                            <span style="margin-right: 1rem; font-size: 1.2rem;">🧠</span>
-                            <div>
-                                <strong style="color: var(--text-primary); display: block; margin-bottom: 0.2rem;">Transparent Workflows</strong>
-                                <span style="font-size: 0.95rem;">View the agent's internal thoughts and execution steps in real-time.</span>
-                            </div>
-                        </li>
-                    </ul>
-                    <div style="margin-top: 3rem; padding: 1rem; border: 1px dashed var(--border-color); border-radius: 8px; text-align: center; background: rgba(13, 17, 23, 0.5);">
-                        <span style="font-size: 0.9rem;">To get started, click <strong>+ New Chat</strong> in the sidebar.</span>
-                    </div>
-                </div>
-            </div>`;
+                chatContainer.innerHTML = renderWelcomeScreen();
                 setComposerEnabled(false);
                 document.getElementById("current-chat-title").textContent = "New Chat";
                 document.getElementById("current-chat-id").style.display = "none";
@@ -482,15 +527,19 @@ function createTraceElement(traceObj) {
 
 async function sendMessage() {
     const text = messageInput.value.trim();
-    if (!text || !currentConversationId) return;
+    if (!text || !currentConversationId || isProcessing) return;
 
-    // UI: Clear input & Show User Message
+    // UI: Set loading state
+    setSendButtonLoading(true);
     messageInput.value = "";
+
+    // UI: Show User Message
     renderFullMessage({ role: "user", content: text });
 
-    // UI: Prepare Assistant Shell
+    // UI: Prepare Assistant Shell with typing indicator
     const { tracesDiv, bubble, citationsDiv } = renderFullMessage({ role: "assistant", content: "" });
-    bubble.textContent = ""; // Waiting...
+    const typingIndicator = createTypingIndicator();
+    bubble.appendChild(typingIndicator);
     scrollToBottom();
 
     try {
@@ -504,6 +553,7 @@ async function sendMessage() {
         const decoder = new TextDecoder();
         let buffer = "";
         let fullAnswer = "";
+        let firstChunk = true;
 
         while (true) {
             const { value, done } = await reader.read();
@@ -518,6 +568,11 @@ async function sendMessage() {
                 try {
                     const event = JSON.parse(line);
                     if (event.type === "answer") {
+                        // Remove typing indicator on first answer chunk
+                        if (firstChunk) {
+                            typingIndicator.remove();
+                            firstChunk = false;
+                        }
                         fullAnswer += event.content;
                         bubble.innerHTML = marked.parse(fullAnswer);
                     } else {
@@ -530,12 +585,20 @@ async function sendMessage() {
             }
         }
 
+        // Remove typing indicator if still present (no answer received)
+        if (firstChunk && typingIndicator.parentNode) {
+            typingIndicator.remove();
+        }
+
         // Refresh conversation list to show updated title (if generated)
         setTimeout(loadConversations, 2000);
 
     } catch (err) {
         console.error("Chat error", err);
+        typingIndicator.remove();
         bubble.textContent = "Error: " + err.message;
+    } finally {
+        setSendButtonLoading(false);
     }
 }
 
