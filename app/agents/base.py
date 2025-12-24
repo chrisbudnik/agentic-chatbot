@@ -92,7 +92,6 @@ class BaseAgent(ABC):
 	async def process_turn(
 		self, history: List[dict], user_input: str
 	) -> AsyncIterator[AgentEvent]:
-		context = CallbackContext()
 		"""
 		Process a single turn of the agent.
 
@@ -103,6 +102,8 @@ class BaseAgent(ABC):
 		Yields:
 			AsyncIterator[AgentEvent]: An async iterator of agent events.
 		"""
+
+		context = CallbackContext()
 
 		# -------------------------------------------------------------------
 		# BEFORE CALLBACK
