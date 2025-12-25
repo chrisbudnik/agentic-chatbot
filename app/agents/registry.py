@@ -12,15 +12,15 @@ from app.agents.llm_agent import LLMAgent
 # Simple Registry
 AGENTS = {
 	"default": LLMAgent(
-		name="LLM Agent",
-		description="The default LLM agent.",
-		system_prompt=" You are a helpful assistant. Answer questions based using search tools.",
+		name="LLM Agent (GCP AI Application)",
+		description="LLM agent using GCP AI Application search tool.",
+		system_prompt="You are a helpful assistant. Answer questions based using search tools.",
 		tools=[VertexAISearchTool()],
 	),
 	"rag_engine": LLMAgent(
 		name="LLM Agent (Rag Engine)",
-		description="The default LLM agent.",
-		system_prompt=" You are a helpful assistant. Answer questions based using search tools.",
+		description="LLM agent using Vertex AI Rag Engine search tool.",
+		system_prompt="You are a helpful assistant. Answer questions based using search tools.",
 		tools=[VertexAIRagEngineTool()],
 	),
 	"dummy": DummyAgent(
