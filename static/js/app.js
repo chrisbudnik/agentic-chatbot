@@ -35,7 +35,7 @@ import {
     scrollToBottom,
     clearChat,
     getAndClearInput
-} from './ui.js';
+} from './ui/index.js';
 
 // ============================================================================
 // Initialization
@@ -250,7 +250,7 @@ async function handleSendMessage() {
             } else {
                 tracesDiv.appendChild(createTraceElement(event));
             }
-            scrollToBottom();
+    scrollToBottom();
         });
 
         // Remove typing indicator if no answer was received
