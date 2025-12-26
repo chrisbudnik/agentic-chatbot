@@ -76,46 +76,22 @@ class LLMAgent(BaseAgent):
 		]
 		messages.extend(history)
 		messages.append({"role": "user", "content": user_input})
-
-		# # -------------------------------------------------------------------
-		# # 2. Prepare Tools
-		# # -------------------------------------------------------------------
-		# openai_tools = (
-		# 	[t.to_openai_tool() for t in self.tools.values()]
-		# 	if self.tools
-		# 	else None
-		# )
-		logger.info(f"LLMAgent with message: {user_input}")
+		logger.info(f"LLMAgent with message: {user_input[:100]}...")
 
 		# -------------------------------------------------------------------
-		# 3. ReAct / Tool-Use Loop
-		# - handle LLM response,
+		# 2. ReAct / Tool-Use Loop
+		# - handle LLM response with callbacks,
 		# - execute tools,
 		# - feed tool results back to LLM history
 		# -------------------------------------------------------------------
 		while True:
-			# Make LLM call (pass tools as list, not dict)
-
+			# Make LLM call (with callbacks)
 			async for event in self.llm.call(
 				self.model, messages, callback_context, self.tools
 			):
 				yield event
 
 			msg, content, tool_calls = self.llm.parse_result(callback_context)
-
-			# # Get the result from the LLM call
-			# result = callback_context.llm_result
-
-			# content = result.content
-			# tool_calls = result.tool_calls
-
-			# # Build message dict for history
-			# msg_dict = {"role": "assistant"}
-			# if content:
-			# 	msg_dict["content"] = content
-			# if tool_calls:
-			# 	msg_dict["tool_calls"] = tool_calls
-
 			messages.append(msg)
 
 			# If no tool calls, we have the final answer
@@ -136,6 +112,7 @@ class LLMAgent(BaseAgent):
 
 				tool = self.get_tool(tool_call.function.name)
 
+				# Execute tool (with callbacks)
 				async for event in tool.execute(tool_call, tool_context):
 					yield event
 				tool_result = tool_context.tool_result
