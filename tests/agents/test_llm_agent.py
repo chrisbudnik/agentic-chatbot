@@ -21,14 +21,14 @@ async def test_llm_agent_simple_answer():
 		system_prompt="You are a helpful assistant.",
 	)
 
-	# Mock the client
+	# Mock the client (on the LLMCaller instance)
 	mock_response = MagicMock()
 	mock_response.choices = [
 		MagicMock(message=MagicMock(content="Hello", tool_calls=None))
 	]
 
-	agent.client = AsyncMock()
-	agent.client.chat.completions.create.return_value = mock_response
+	agent.llm.client = AsyncMock()
+	agent.llm.client.chat.completions.create.return_value = mock_response
 
 	events = []
 	async for event in agent.process_turn([], "Hi"):
@@ -52,7 +52,7 @@ async def test_llm_agent_tool_use_loop():
 		system_prompt="You are a helpful assistant.",
 		tools=[SimpleTool()],
 	)
-	agent.client = AsyncMock()
+	agent.llm.client = AsyncMock()
 
 	# Response 1: Call Tool
 	tool_call = MagicMock()
@@ -70,7 +70,7 @@ async def test_llm_agent_tool_use_loop():
 	resp2.choices = [MagicMock(message=msg2)]
 
 	# Setup side_effect for multiple calls
-	agent.client.chat.completions.create.side_effect = [resp1, resp2]
+	agent.llm.client.chat.completions.create.side_effect = [resp1, resp2]
 
 	events = []
 	async for event in agent.process_turn([], "Calculate"):

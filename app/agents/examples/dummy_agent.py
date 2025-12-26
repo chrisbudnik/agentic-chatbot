@@ -21,8 +21,13 @@ class DummyAgent(BaseAgent):
 			content="Searching...",
 			tool_name="search_tool",
 		)
-		result = await self.tools["search_tool"].run(
-			context=callback_context, query=user_input
+		search_tool = next(
+			(t for t in self.tools if t.name == "search_tool"), None
+		)
+		result = (
+			await search_tool.run(context=callback_context, query=user_input)
+			if search_tool
+			else "Tool not found"
 		)
 		yield AgentEvent(type="tool_result", content=str(result))
 

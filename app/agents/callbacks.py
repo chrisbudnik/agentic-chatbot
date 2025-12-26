@@ -1,6 +1,7 @@
 from typing import AsyncIterator, List, Callable, Any
 import inspect
 from app.agents.models import AgentEvent, CallbackContext
+from app.agents.models import LLMCallParams, LLMCallResult
 
 
 type CallbackFunctionOutput = (
@@ -12,6 +13,10 @@ type CallbackFunctionOutput = (
 	| None
 )
 
+# ------------------------------------------------------------
+# AGENT CALLBACKS
+# ------------------------------------------------------------
+
 type BeforeAgentCallback = Callable[
 	[str, List[dict], CallbackContext], CallbackFunctionOutput
 ]  # user_input: str, history: List[dict]
@@ -20,6 +25,11 @@ type AfterAgentCallback = Callable[
 	[AgentEvent, CallbackContext], CallbackFunctionOutput
 ]  # final_answer: AgentEvent
 
+
+# ------------------------------------------------------------
+# TOOL CALLBACKS
+# ------------------------------------------------------------
+
 type BeforeToolCallback = Callable[
 	[dict[str, Any], CallbackContext], CallbackFunctionOutput
 ]  # tool_args: dict
@@ -27,6 +37,24 @@ type BeforeToolCallback = Callable[
 type AfterToolCallback = Callable[
 	[str, CallbackContext], CallbackFunctionOutput
 ]  # tool_result: str
+
+
+# ------------------------------------------------------------
+# LLM MODEL CALLBACKS
+# ------------------------------------------------------------
+
+type BeforeModelCallback = Callable[
+	[LLMCallParams, CallbackContext], CallbackFunctionOutput
+]  # params: LLMCallParams - can modify model, messages, tools, etc.
+
+type AfterModelCallback = Callable[
+	[LLMCallResult, CallbackContext], CallbackFunctionOutput
+]  # result: LLMCallResult - can modify content, add parsed output, etc.
+
+
+# ------------------------------------------------------------
+# CALLBACK RUNNER
+# ------------------------------------------------------------
 
 
 async def run_callback_with_events(

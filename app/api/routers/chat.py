@@ -49,7 +49,7 @@ async def list_agents() -> List[AgentInfo]:
 				id=agent_id,
 				name=agent.name,
 				description=agent.description,
-				tools=list(agent.tools.keys()),
+				tools=[t.name for t in agent.tools] if agent.tools else [],
 			)
 		)
 	return agents_list

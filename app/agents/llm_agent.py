@@ -1,9 +1,16 @@
 from typing import List, AsyncIterator, Optional
 from openai import AsyncOpenAI
-from app.agents.base import BaseAgent, AgentEvent
+from app.agents.base import BaseAgent
 from app.agents.tools.base import BaseTool
 from app.core.config import settings
-from app.agents.models import CallbackContext
+from app.agents.callbacks import (
+	BeforeModelCallback,
+	AfterModelCallback,
+	BeforeAgentCallback,
+	AfterAgentCallback,
+)
+from app.agents.models import AgentEvent, CallbackContext
+from app.agents.llm import LLM
 from app.core.logging import get_logger
 
 
@@ -18,8 +25,10 @@ class LLMAgent(BaseAgent):
 		system_prompt: str,
 		tools: Optional[List[BaseTool]] = None,
 		model: str = "gpt-4.1",
-		before_agent_callback=None,
-		after_agent_callback=None,
+		before_agent_callback: Optional[BeforeAgentCallback] = None,
+		after_agent_callback: Optional[AfterAgentCallback] = None,
+		before_model_callback: Optional[BeforeModelCallback] = None,
+		after_model_callback: Optional[AfterModelCallback] = None,
 	):
 		super().__init__(
 			name=name,
@@ -31,6 +40,12 @@ class LLMAgent(BaseAgent):
 			after_agent_callback=after_agent_callback,
 		)
 		self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+
+		self.llm = LLM(
+			client=self.client,
+			before_model_callback=before_model_callback,
+			after_model_callback=after_model_callback,
+		)
 
 	async def _process_turn(
 		self,
@@ -51,7 +66,7 @@ class LLMAgent(BaseAgent):
 		"""
 
 		# -------------------------------------------------------------------
-		# 1. Prepare Messages
+		# 1. Prepare Message History
 		# -------------------------------------------------------------------
 		messages = [
 			{
@@ -62,15 +77,14 @@ class LLMAgent(BaseAgent):
 		messages.extend(history)
 		messages.append({"role": "user", "content": user_input})
 
-		# -------------------------------------------------------------------
-		# 2. Prepare Tools
-		# -------------------------------------------------------------------
-		openai_tools = (
-			[t.to_openai_tool() for t in self.tools.values()]
-			if self.tools
-			else None
-		)
-
+		# # -------------------------------------------------------------------
+		# # 2. Prepare Tools
+		# # -------------------------------------------------------------------
+		# openai_tools = (
+		# 	[t.to_openai_tool() for t in self.tools.values()]
+		# 	if self.tools
+		# 	else None
+		# )
 		logger.info(f"LLMAgent with message: {user_input}")
 
 		# -------------------------------------------------------------------
@@ -80,56 +94,51 @@ class LLMAgent(BaseAgent):
 		# - feed tool results back to LLM history
 		# -------------------------------------------------------------------
 		while True:
-			logger.info("Sending request to OpenAI LLM...")
-			try:
-				response = await self.client.chat.completions.create(
-					model=self.model,
-					messages=messages,
-					tools=openai_tools if openai_tools else None,
-					tool_choice="auto" if openai_tools else None,
-				)
-			except Exception as e:
-				logger.error(f"Error in process_turn: {str(e)}")
-				yield AgentEvent(type="error", content=str(e))
-				break
+			# Make LLM call (pass tools as list, not dict)
 
-			logger.info("Received response from OpenAI LLM.")
+			async for event in self.llm.call(
+				self.model, messages, callback_context, self.tools
+			):
+				yield event
 
-			message = response.choices[0].message
-			content = message.content
-			tool_calls = message.tool_calls
+			msg, content, tool_calls = self.llm.parse_result(callback_context)
 
-			msg_dict = {"role": "assistant"}
-			if content:
-				msg_dict["content"] = content
-			if tool_calls:
-				msg_dict["tool_calls"] = tool_calls
+			# # Get the result from the LLM call
+			# result = callback_context.llm_result
 
-			messages.append(msg_dict)
+			# content = result.content
+			# tool_calls = result.tool_calls
 
+			# # Build message dict for history
+			# msg_dict = {"role": "assistant"}
+			# if content:
+			# 	msg_dict["content"] = content
+			# if tool_calls:
+			# 	msg_dict["tool_calls"] = tool_calls
+
+			messages.append(msg)
+
+			# If no tool calls, we have the final answer
 			if not tool_calls:
 				yield AgentEvent(type="answer", content=content)
 				break
 
+			# If there's content with tool calls, it's a "thought"
 			if content:
 				yield AgentEvent(type="thought", content=content)
 
+			# Execute each tool call
 			for tool_call in tool_calls:
 				logger.info(f"Executing tool: {tool_call.function.name}")
 
-				# new context for each tool - avoid race conditions
+				# New context for each tool - avoid race conditions
 				tool_context: CallbackContext = CallbackContext()
-				tool = self.tools.get(tool_call.function.name)
 
-				if tool:
-					async for event in tool.execute(tool_call, tool_context):
-						yield event
-					tool_result = tool_context.tool_result
-				else:
-					# this error practically never happens for newer models
-					tool_result = (
-						f"Error: Tool '{tool_call.function.name}' not found."
-					)
+				tool = self.get_tool(tool_call.function.name)
+
+				async for event in tool.execute(tool_call, tool_context):
+					yield event
+				tool_result = tool_context.tool_result
 
 				messages.append(
 					BaseTool.build_tool_result_message(

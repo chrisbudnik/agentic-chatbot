@@ -26,7 +26,7 @@ class BaseAgent(ABC):
 		before_agent_callback: Optional[BeforeAgentCallback] = None,
 		after_agent_callback: Optional[AfterAgentCallback] = None,
 	) -> None:
-		self.tools = {t.name: t for t in tools} if tools else {}
+		self.tools = tools
 		self.name = name
 		self.description = description
 		self.system_prompt = system_prompt
@@ -155,3 +155,13 @@ class BaseAgent(ABC):
 		Abstract method to process a turn. Implemented by subclasses.
 		"""
 		pass
+
+	# ============================================================
+	# GET TOOL BY NAME
+	# ============================================================
+
+	def get_tool(self, name: str) -> Optional[BaseTool]:
+		"""
+		Get a tool by name from a list of tools.
+		"""
+		return next(t for t in self.tools if t.name == name)
